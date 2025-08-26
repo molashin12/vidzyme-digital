@@ -1,0 +1,195 @@
+.App {
+  min-height: 100vh;
+  background-color: #f8fafc;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.auth-form {
+  width: 100%;
+  max-width: 400px;
+  padding: 40px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.video-card {
+  transition: transform 0.2s ease-in-out;
+}
+
+.video-card:hover {
+  transform: translateY(-2px);
+}
+
+.upload-zone {
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  padding: 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.upload-zone:hover {
+  border-color: #6366f1;
+}
+
+.upload-zone.active {
+  border-color: #6366f1;
+  background-color: #f0f9ff;
+}
+
+.video-preview {
+  max-width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.generation-progress {
+  margin: 20px 0;
+}
+
+.navbar {
+  background: white;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: #6366f1;
+}
+
+.status-chip {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-processing {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.status-completed {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-failed {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .auth-container {
+    padding: 10px;
+  }
+  
+  .auth-form {
+    padding: 20px;
+    margin: 10px;
+  }
+  
+  .dashboard-container {
+    padding: 10px;
+  }
+  
+  .upload-zone {
+    padding: 20px;
+  }
+  
+  .navbar-brand {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-form {
+    padding: 15px;
+    margin: 5px;
+  }
+  
+  .dashboard-container {
+    padding: 5px;
+  }
+  
+  .upload-zone {
+    padding: 15px;
+  }
+  
+  .navbar-brand {
+    font-size: 1.1rem;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .auth-container {
+    padding: 10px;
+  }
+  
+  .auth-form {
+    padding: 20px;
+    margin: 10px;
+  }
+  
+  .dashboard-container {
+    padding: 10px;
+  }
+  
+  .upload-zone {
+    padding: 20px;
+  }
+  
+  .navbar-brand {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-form {
+    padding: 15px;
+    margin: 5px;
+  }
+  
+  .dashboard-container {
+    padding: 5px;
+  }
+  
+  .upload-zone {
+    padding: 15px;
+  }
+  
+  .navbar-brand {
+    font-size: 1.1rem;
+  }
+}

@@ -1,0 +1,63 @@
+
+# VidZyme Visual Identity
+
+## Logo
+
+![VidZyme Logo](https://private-us-east-1.manuscdn.com/sessionFile/3CQuiigvkqzErQXrwACqun/sandbox/t0nQe895F9VuktUTczeeJE-images_1756142262980_na1fn_L2hvbWUvdWJ1bnR1L3ZpZHp5bWVfbG9nb19maW5hbA.png?Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9wcml2YXRlLXVzLWVhc3QtMS5tYW51c2Nkbi5jb20vc2Vzc2lvbkZpbGUvM0NRdWlpZ3ZrcXpFclFYcndBQ3F1bi9zYW5kYm94L3QwblFlODk1RjlWdWt0VVRjemVlSkUtaW1hZ2VzXzE3NTYxNDIyNjI5ODBfbmExZm5fTDJodmJXVXZkV0oxYm5SMUwzWnBaSHA1YldWZmJHOW5iMTltYVc1aGJBLnBuZyIsIkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTc5ODc2MTYwMH19fV19&Key-Pair-Id=K2HSFNDJXOU9YS&Signature=WzrsF2SThI8rK7xHQAz4IN6I2Hwu8zVs1ibepwe3A1qj8QbZhWcoouEFVamZ2js0LCxJFgXBJBHov1c30um-Bcc-Q8SPR~XQYyWM5-4sOsbyhWgwmxPyV8p8C0P09zOjvdBQiFj6JCHWDwtDJb~FZTm2GiXLipgBYR5RGRxd4OsfbGmV8wKamovvV3WS4kqrdSRaBTGFUMPMhrgCTfvWu4EPQ~NhgSOHQ7hrnmSU1-Wazk04hW907eeDDrjv9WK~qa0J1Yppsa8T9tGp917BSVDM7GwpE7png4gnAA1B2Lj0UvuoTYmiQClzB4pZXGyYBjTxDllB4ZJRy1sAnQHPEA__)
+
+## Color Palette
+
+Based on the selected logo, the primary colors for VidZyme's brand identity will be derived from the gradients present in the logo. These include:
+
+*   **Primary Blue/Purple:** A deep, rich blue-purple, representing professionalism, innovation, and trust.
+*   **Secondary Teal/Aqua:** A vibrant teal/aqua, symbolizing creativity, freshness, and technology.
+*   **Accent White:** Used for text and clean spaces, providing contrast and readability.
+*   **Dark Gray/Black:** For backgrounds and strong textual elements, offering a sleek and modern feel.
+
+I will now extract the exact hex codes for these colors from the logo to ensure consistency.
+
+## Typography
+
+For VidZyme, a modern, clean, and highly readable sans-serif typeface will be chosen to complement the sleek and minimalist logo. The typography should convey professionalism and technological advancement.
+
+**Suggested Typefaces:**
+
+*   **Primary Headings:** A bold and clean sans-serif font (e.g., Montserrat, Lato Black, or similar) for strong impact and readability.
+*   **Body Text:** A highly legible sans-serif font with good readability at smaller sizes (e.g., Open Sans, Roboto, or similar) for all general content.
+
+This combination will ensure a consistent and professional visual experience across all VidZyme's branding and digital assets.
+
+
+
+### Extracted Color Codes:
+
+*   **Primary Blue/Purple:** #071946 (This is the darkest blue/purple in the logo, representing the core brand color)
+*   **Secondary Teal/Aqua:** #286986 (This is the vibrant teal/aqua, representing creativity and technology)
+*   **Accent White:** #fefefe, #f7fcfb, #f1f4f9 (These are various shades of white/off-white, used for backgrounds and text)
+
+These hex codes will be used to maintain consistency across all VidZyme's digital assets.
+
+
+
+
+## Brand Assets
+
+### Illustrations
+
+![Abstract Tech Illustration 1](https://private-us-east-1.manuscdn.com/sessionFile/3CQuiigvkqzErQXrwACqun/sandbox/t0nQe895F9VuktUTczeeJE-images_1756142262981_na1fn_L2hvbWUvdWJ1bnR1L3ZpZHp5bWVfaWxsdXN0cmF0aW9uXzE.png?Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9wcml2YXRlLXVzLWVhc3QtMS5tYW51c2Nkbi5jb20vc2Vzc2lvbkZpbGUvM0NRdWlpZ3ZrcXpFclFYcndBQ3F1bi9zYW5kYm94L3QwblFlODk1RjlWdWt0VVRjemVlSkUtaW1hZ2VzXzE3NTYxNDIyNjI5ODFfbmExZm5fTDJodmJXVXZkV0oxYm5SMUwzWnBaSHA1YldWZmFXeHNkWE4wY21GMGFXOXVYekUucG5nIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNzk4NzYxNjAwfX19XX0_&Key-Pair-Id=K2HSFNDJXOU9YS&Signature=jszLLGb7TrRrP4mzvLfgxIFfIN3LvBAbfR3H4p0XnJG1R8h6131~Y6PAjp6MQFQVE0h4wkRplpQlmTjPnDosEvs1MuF6m7-uDFVLsku3tszpYVzyUd1lzqpHUy201ALkEwPQ0r2PBE5umN0w6dd00r9jqFBAdzeiZVyIxhQCned~Za9luDuJSvMeHi6TKbo5lUrk6nIdQK14DdKuF06KRQHtN9BmDvP0OSRSYzH0TFDeVZ9EMoyST5I6tMWRl5DxP68KtnbDZKxpJGM3G8sVo5GMImdbkxUe92QfXux--oZPD1wUCqQvHc9X-0ot6xqOxloO~PhlN5YLwNcQ2GVoBA__)
+
+![Abstract Tech Illustration 2](https://private-us-east-1.manuscdn.com/sessionFile/3CQuiigvkqzErQXrwACqun/sandbox/t0nQe895F9VuktUTczeeJE-images_1756142262981_na1fn_L2hvbWUvdWJ1bnR1L3ZpZHp5bWVfaWxsdXN0cmF0aW9uXzI.png?Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9wcml2YXRlLXVzLWVhc3QtMS5tYW51c2Nkbi5jb20vc2Vzc2lvbkZpbGUvM0NRdWlpZ3ZrcXpFclFYcndBQ3F1bi9zYW5kYm94L3QwblFlODk1RjlWdWt0VVRjemVlSkUtaW1hZ2VzXzE3NTYxNDIyNjI5ODFfbmExZm5fTDJodmJXVXZkV0oxYm5SMUwzWnBaSHA1YldWZmFXeHNkWE4wY21GMGFXOXVYekkucG5nIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNzk4NzYxNjAwfX19XX0_&Key-Pair-Id=K2HSFNDJXOU9YS&Signature=IJi6~9BgpyJlv0gqXRuguT569PCoCJ0Fwrk41q8UinMNHmpIoFqQsAdo472X28UVIBpCUBV88YYZ2mWY-nYaZQsFSyZSJ-hHvsHrziRDPHEWyaCPTtyh4HPagm57I9fX9IXXW74oNRVRsukznnzL-t-C3i3YJW-ckzZvn5jDpNBnGemIasf2shaWE8RPhpNVDTp0V081lEHM7ra0xf4HRKYPW6BaN70Kb-JOIV1jPh2eWkXsIrrqooxOOHRhiPULcSgVpzyVeKFDBvG7LXngmNhCUONk3c5FRMEnRo5CfhWpmkTLKBx7R61v1MbNwAhbjtRgz5fKP0oPwJdAK-dPJQ__)
+
+These abstract tech illustrations will be used in the landing page to convey the advanced technology and automation aspects of VidZyme.
+
+### Icons
+
+![Video Icon](https://private-us-east-1.manuscdn.com/sessionFile/3CQuiigvkqzErQXrwACqun/sandbox/t0nQe895F9VuktUTczeeJE-images_1756142262982_na1fn_L2hvbWUvdWJ1bnR1L3ZpZHp5bWVfaWNvbl92aWRlbw.png?Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9wcml2YXRlLXVzLWVhc3QtMS5tYW51c2Nkbi5jb20vc2Vzc2lvbkZpbGUvM0NRdWlpZ3ZrcXpFclFYcndBQ3F1bi9zYW5kYm94L3QwblFlODk1RjlWdWt0VVRjemVlSkUtaW1hZ2VzXzE3NTYxNDIyNjI5ODJfbmExZm5fTDJodmJXVXZkV0oxYm5SMUwzWnBaSHA1YldWZmFXTnZibDkyYVdSbGJ3LnBuZyIsIkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTc5ODc2MTYwMH19fV19&Key-Pair-Id=K2HSFNDJXOU9YS&Signature=d6F-89WUKCE6DcVX1xt7IWQga7oX3ycsYfC3RnHJds10qpRUVTG11Rg4OTE9jnmTe~RYDIVeQLxqEycmfM5QceVt2dfO5mtDxKWYNMtKLWwlEs2ZSNOJJsfjHZsQPXsf73PIlT8kZf-T9H1FfAJ1N-mKY4yRWZ1SIMEHRJKfwZXD6tEl1ibcpPY9RdaRp3sfiuoTUxnTQgQRaT4qO59DEub~nitgi3drNXgiKmPnwPhibsFNUOTrGz0m077fe8bqo38-RdHcGBeE6wxcl8qLh6gBlV9KRzWPEXEjfkzyz4elJqOPgF8ipbQKnDwUufaZpLckaKQqgMEqV0WeEuuodQ__)
+
+![AI Icon](https://private-us-east-1.manuscdn.com/sessionFile/3CQuiigvkqzErQXrwACqun/sandbox/t0nQe895F9VuktUTczeeJE-images_1756142262982_na1fn_L2hvbWUvdWJ1bnR1L3ZpZHp5bWVfaWNvbl9haQ.png?Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9wcml2YXRlLXVzLWVhc3QtMS5tYW51c2Nkbi5jb20vc2Vzc2lvbkZpbGUvM0NRdWlpZ3ZrcXpFclFYcndBQ3F1bi9zYW5kYm94L3QwblFlODk1RjlWdWt0VVRjemVlSkUtaW1hZ2VzXzE3NTYxNDIyNjI5ODJfbmExZm5fTDJodmJXVXZkV0oxYm5SMUwzWnBaSHA1YldWZmFXTnZibDloYVEucG5nIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNzk4NzYxNjAwfX19XX0_&Key-Pair-Id=K2HSFNDJXOU9YS&Signature=pkiucN4l2ezgC-Od4DzdFnwQBIdlBqRGc6K~ntGv1y4zLZ4XLXfpksmXBopLnqD2v-mvBexFU7cXHpPcs4kxUTTro-N81YEeYnloSXV4Gsug4Vi9BD1qykCfBeLKkRymTGhE~V70g~iwBNyELHAA3309tury1KLRk3PqnlabrNtzTFjn9HCbmDby5ihrNDpSpxCRvSCfux5YJkQZW7z8TMkqYoFMrnPKEs5-ZU32p~Dj9OJH--6e065Df7UfqAHdRgR5a9v6dizbdisqZmfZX3qFtvXL1H4VNNRbHTT5rt8MSTiIZfJQAt6eLiqjP8GFCGpQPOPXKGjsrENC57COow__)
+
+![Upload Icon](https://private-us-east-1.manuscdn.com/sessionFile/3CQuiigvkqzErQXrwACqun/sandbox/t0nQe895F9VuktUTczeeJE-images_1756142262983_na1fn_L2hvbWUvdWJ1bnR1L3ZpZHp5bWVfaWNvbl91cGxvYWQ.png?Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9wcml2YXRlLXVzLWVhc3QtMS5tYW51c2Nkbi5jb20vc2Vzc2lvbkZpbGUvM0NRdWlpZ3ZrcXpFclFYcndBQ3F1bi9zYW5kYm94L3QwblFlODk1RjlWdWt0VVRjemVlSkUtaW1hZ2VzXzE3NTYxNDIyNjI5ODNfbmExZm5fTDJodmJXVXZkV0oxYm5SMUwzWnBaSHA1YldWZmFXTnZibDkxY0d4dllXUS5wbmciLCJDb25kaXRpb24iOnsiRGF0ZUxlc3NUaGFuIjp7IkFXUzpFcG9jaFRpbWUiOjE3OTg3NjE2MDB9fX1dfQ__&Key-Pair-Id=K2HSFNDJXOU9YS&Signature=ZIi-aeDTCq8b17zVQyTOz-WXotDRSul1pn-70NI1ws34BIAgrIa20acGSf08YT6Q3a7W0HNrRffXulbaTIUudVssjfNGZADcidgxNM~sB4XgKvhS0gYSZi3WT0HyfA72cQ7OzXjvm1B00Owk3jTxVH1klbT9GBI17TskY6OlnTEFIZngK1Fr5NEXFyb6E4VyE-N5tKEPZg3wTq3MaA3-AUbzed2Hh7GhNx2I3~uUR2zdgoyrnNWsYDEZB2VoiH3OXtQC9hckJnnJ8NYdf8F2r7Dr9zGwOLTvrPQ8mOzH7sD-LLd2tLcdJxShZI-x1yxigLSPwR5GpiBCn6Rz9MaOww__)
+
+These minimalist icons will be used throughout the landing page and potentially within the VidZyme platform to represent key features and functionalities.
+
+
