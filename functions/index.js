@@ -1,5 +1,6 @@
 const { onRequest } = require('firebase-functions/v2/https');
 const { setGlobalOptions } = require('firebase-functions/v2');
+const cors = require('cors')({ origin: true });
 
 // Set global options for all functions
 setGlobalOptions({
@@ -12,6 +13,23 @@ setGlobalOptions({
 // Load environment variables
 require('dotenv').config();
 
+// Initialize Genkit configuration
+require('./src/index');
+
+// CORS middleware wrapper
+function withCors(handler) {
+  return onRequest(async (req, res) => {
+    return cors(req, res, async () => {
+      try {
+        await handler(req, res);
+      } catch (error) {
+        console.error('Function error:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+  });
+}
+
 // Import all flows
 const { imageAnalysisFlow } = require('./src/imageAnalysis');
 const { promptGenerationFlow } = require('./src/promptGeneration');
@@ -23,82 +41,48 @@ const { videoCreationFlow } = require('./src/orchestration');
 const { frameExtractionFlow } = require('./src/frameExtraction');
 
 // Export Cloud Functions
-exports.imageAnalysis = onRequest(async (req, res) => {
-  try {
-    const result = await imageAnalysisFlow(req.body);
-    res.json(result);
-  } catch (error) {
-    console.error('Image analysis error:', error);
-    res.status(500).json({ error: error.message });
-  }
+exports.imageAnalysis = withCors(async (req, res) => {
+  const result = await imageAnalysisFlow(req.body);
+  res.json(result);
 });
 
-exports.promptGeneration = onRequest(async (req, res) => {
-  try {
-    const result = await promptGenerationFlow(req.body);
-    res.json(result);
-  } catch (error) {
-    console.error('Prompt generation error:', error);
-    res.status(500).json({ error: error.message });
-  }
+exports.promptGeneration = withCors(async (req, res) => {
+  const result = await promptGenerationFlow(req.body);
+  res.json(result);
 });
 
-exports.imageGeneration = onRequest(async (req, res) => {
-  try {
-    const result = await imageGenerationFlow(req.body);
-    res.json(result);
-  } catch (error) {
-    console.error('Image generation error:', error);
-    res.status(500).json({ error: error.message });
-  }
+exports.imageGeneration = withCors(async (req, res) => {
+  const result = await imageGenerationFlow(req.body);
+  res.json(result);
 });
 
-exports.videoPromptGeneration = onRequest(async (req, res) => {
-  try {
-    const result = await videoPromptGenerationFlow(req.body);
-    res.json(result);
-  } catch (error) {
-    console.error('Video prompt generation error:', error);
-    res.status(500).json({ error: error.message });
-  }
+exports.videoPromptGeneration = withCors(async (req, res) => {
+  const result = await videoPromptGenerationFlow(req.body);
+  res.json(result);
 });
 
-exports.videoGeneration = onRequest(async (req, res) => {
-  try {
-    const result = await videoGenerationFlow(req.body);
-    res.json(result);
-  } catch (error) {
-    console.error('Video generation error:', error);
-    res.status(500).json({ error: error.message });
-  }
+exports.videoGeneration = withCors(async (req, res) => {
+  const result = await videoGenerationFlow(req.body);
+  res.json(result);
 });
 
-exports.sequentialVideoGeneration = onRequest(async (req, res) => {
-  try {
-    const result = await sequentialVideoGenerationFlow(req.body);
-    res.json(result);
-  } catch (error) {
-    console.error('Sequential video generation error:', error);
-    res.status(500).json({ error: error.message });
-  }
+exports.sequentialVideoGeneration = withCors(async (req, res) => {
+  const result = await sequentialVideoGenerationFlow(req.body);
+  res.json(result);
 });
 
-exports.videoCreation = onRequest(async (req, res) => {
-  try {
-    const result = await videoCreationFlow(req.body);
-    res.json(result);
-  } catch (error) {
-    console.error('Video creation error:', error);
-    res.status(500).json({ error: error.message });
-  }
+exports.videoCreation = withCors(async (req, res) => {
+  const result = await videoCreationFlow(req.body);
+  res.json(result);
 });
 
-exports.frameExtraction = onRequest(async (req, res) => {
-  try {
-    const result = await frameExtractionFlow(req.body);
-    res.json(result);
-  } catch (error) {
-    console.error('Frame extraction error:', error);
-    res.status(500).json({ error: error.message });
-  }
+exports.frameExtraction = withCors(async (req, res) => {
+  const result = await frameExtractionFlow(req.body);
+  res.json(result);
+});
+
+// Export createVideoWithGenkit for frontend compatibility
+exports.createVideoWithGenkit = withCors(async (req, res) => {
+  const result = await videoCreationFlow(req.body);
+  res.json(result);
 });
