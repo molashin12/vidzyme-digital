@@ -4,7 +4,7 @@
 # Make sure you have gcloud CLI installed and authenticated
 
 # Configuration
-PROJECT_ID="static-groove-464313-t4"
+PROJECT_ID="vidzyme"
 SERVICE_NAME="ffmpeg-video-merger"
 REGION="us-central1"
 IMAGE_NAME="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
@@ -69,7 +69,7 @@ gcloud run deploy $SERVICE_NAME \
     --timeout 3600 \
     --concurrency 10 \
     --max-instances 100 \
-    --set-env-vars="STORAGE_BUCKET=static-groove-464313-t4.appspot.com"
+    --set-env-vars="STORAGE_BUCKET=vidzyme.appspot.com"
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}Deployment successful!${NC}"

@@ -1,11 +1,10 @@
 const { z } = require('zod');
-const { defineFlow } = require('@genkit-ai/flow');
-const { imageAnalysisFlow } = require('./imageAnalysis');
-const { promptGenerationFlow } = require('./promptGeneration');
-const { imageGenerationFlow } = require('./imageGeneration');
-const { videoPromptGenerationFlow } = require('./videoPromptGeneration');
-const { videoGenerationFlow } = require('./videoGeneration');
-const { sequentialVideoGenerationFlow } = require('./sequentialVideoGeneration');
+const { analyzeImage } = require('./imageAnalysis');
+const { generatePrompts, generateImagePrompt } = require('./promptGeneration');
+const { generateImages } = require('./imageGeneration');
+const { generateVideoPrompts } = require('./videoPromptGeneration');
+const { generateVideos } = require('./videoGeneration');
+// Removed sequentialVideoGenerationFlow import to avoid circular dependency
 
 // Input/Output schemas for the main orchestration flow
 const VideoCreationInput = z.object({
@@ -44,14 +43,8 @@ const VideoCreationOutput = z.object({
   error: z.string().optional(),
 });
 
-// Define the main video creation orchestration flow
-const videoCreationFlow = defineFlow(
-  {
-    name: 'videoCreation',
-    inputSchema: VideoCreationInput,
-    outputSchema: VideoCreationOutput,
-  },
-  async (input) => {
+// Main video creation function
+async function createVideo(input) {
     const {
       imageUrl,
       userPrompt,
@@ -71,7 +64,7 @@ const videoCreationFlow = defineFlow(
       
       // Step 1: Analyze the input image
       console.log('Step 1: Analyzing input image...');
-      const imageAnalysis = await imageAnalysisFlow({
+      const imageAnalysis = await analyzeImage({
         imageUrl,
         analysisType: 'comprehensive',
       });
@@ -84,7 +77,7 @@ const videoCreationFlow = defineFlow(
       
       // Step 2: Generate prompts and scene planning
       console.log('Step 2: Generating prompts and planning scenes...');
-      const promptGeneration = await promptGenerationFlow({
+      const promptGeneration = await generatePrompts({
         imageAnalysis: {
           labels: imageAnalysis.labels,
           objects: imageAnalysis.objects,
@@ -102,7 +95,7 @@ const videoCreationFlow = defineFlow(
       
       // Step 3: Generate images for each scene
       console.log('Step 3: Generating images for scenes...');
-      const imageGeneration = await imageGenerationFlow({
+      const imageGeneration = await generateImages({
         scenes: promptGeneration.scenes.map(scene => ({
           id: scene.id,
           imagePrompt: scene.imagePrompt,
@@ -120,7 +113,7 @@ const videoCreationFlow = defineFlow(
       
       // Step 4: Generate video prompts
       console.log('Step 4: Generating video prompts...');
-      const videoPromptGeneration = await videoPromptGenerationFlow({
+      const videoPromptGeneration = await generateVideoPrompts({
         imageAnalysis: imageAnalysis.summary,
         userInstructions: userPrompt,
         totalDuration: duration,
@@ -153,26 +146,16 @@ const videoCreationFlow = defineFlow(
       
       let videoGeneration;
       
-      if (enableFrameContinuity && scenesData.length > 1) {
-        console.log('Using sequential video generation with frame continuity...');
-        videoGeneration = await sequentialVideoGenerationFlow({
-          scenes: scenesData,
-          overallTheme: promptGeneration.overallTheme,
-          aspectRatio: videoPromptGeneration.scenes[0]?.aspect_ratio_video || aspectRatio,
-          quality,
-          model: videoPromptGeneration.scenes[0]?.model || 'veo-3.0-fast-generate-preview',
-          enableFrameContinuity: true,
-        });
-      } else {
-        console.log('Using standard video generation...');
-        videoGeneration = await videoGenerationFlow({
-          scenes: scenesData,
-          overallTheme: promptGeneration.overallTheme,
-          aspectRatio: videoPromptGeneration.scenes[0]?.aspect_ratio_video || aspectRatio,
-          quality,
-          model: videoPromptGeneration.scenes[0]?.model || 'veo-3.0-fast-generate-preview',
-        });
-      }
+      // Use standard video generation (sequential generation removed to avoid circular dependency)
+      console.log('Using standard video generation...');
+      videoGeneration = await generateVideos({
+        scenes: scenesData,
+        overallTheme: promptGeneration.overallTheme,
+        aspectRatio: videoPromptGeneration.scenes[0]?.aspect_ratio_video || aspectRatio,
+        quality,
+        model: videoPromptGeneration.scenes[0]?.model || 'veo-3.0-fast-generate-preview',
+        enableFrameContinuity: enableFrameContinuity && scenesData.length > 1,
+      });
       
       console.log('Video generation completed:', {
         totalVideos: videoGeneration.totalVideos,
@@ -229,10 +212,6 @@ const videoCreationFlow = defineFlow(
           theme: promptGeneration.overallTheme,
           style: videoStyle,
           quality,
-          frameContinuity: {
-            enabled: enableFrameContinuity && scenesData.length > 1,
-            continuityFrames: videoGeneration.continuityFrames || [],
-          },
         },
       };
       
@@ -268,8 +247,7 @@ const videoCreationFlow = defineFlow(
         error: error.message,
       };
     }
-  }
-);
+}
 
 // Helper function to map video style to image style
 function mapVideoStyleToImageStyle(videoStyle) {
@@ -298,4 +276,4 @@ async function storeVideoMetadata(videoId, metadata) {
   }
 }
 
-module.exports = { videoCreationFlow };
+module.exports = { createVideo, VideoCreationInput, VideoCreationOutput };

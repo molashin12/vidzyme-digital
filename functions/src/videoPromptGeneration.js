@@ -1,5 +1,5 @@
 const { z } = require('zod');
-const { defineFlow } = require('@genkit-ai/flow');
+const { vertexAI } = require('./index');
 
 // Input/Output schemas
 const VideoPromptGenerationInput = z.object({
@@ -20,18 +20,12 @@ const VideoPromptGenerationOutput = z.object({
   })),
 });
 
-// Define the video prompt generation flow
-const videoPromptGenerationFlow = defineFlow(
-  {
-    name: 'videoPromptGeneration',
-    inputSchema: VideoPromptGenerationInput,
-    outputSchema: VideoPromptGenerationOutput,
-  },
-  async (input) => {
+// Video prompt generation function
+async function generateVideoPrompts(input) {
     const { imageAnalysis, userInstructions, totalDuration, perVideoLength, aspectRatio, model, dialogueScript } = input;
     
     try {
-      const geminiModel = ai.model('vertexai/gemini-1.5-pro');
+      const geminiModel = vertexAI.getGenerativeModel({ model: 'gemini-1.5-pro-latest' });
       
       const systemPrompt = `You are a UGC (User-Generated Content) AI agent.
 Your task: Take the reference image or the product in the reference image and place it into realistic, casual scenes as if captured by everyday content creators or influencers.
@@ -108,18 +102,18 @@ The user's preferred dialogue script: ${dialogueScript || 'inferred based on the
 ***
 Use the Think tool to double check your output.`;
       
-      const response = await geminiModel.generate({
-        messages: [
-          { role: 'system', content: [{ text: systemPrompt }] },
-          { role: 'user', content: [{ text: userPrompt }] }
-        ],
-        config: {
+      const response = await geminiModel.generateContent({
+        contents: [{
+          role: 'user',
+          parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }]
+        }],
+        generationConfig: {
           temperature: 0.7,
           maxOutputTokens: 3000,
         },
       });
       
-      const responseText = response.text;
+      const responseText = response.response.text();
       
       // Parse JSON response
       let parsedResponse;
@@ -169,7 +163,10 @@ Use the Think tool to double check your output.`;
       console.error('Video prompt generation error:', error);
       throw new Error(`Failed to generate video prompts: ${error.message}`);
     }
-  }
-);
+}
 
-module.exports = { videoPromptGenerationFlow };
+module.exports = { 
+  generateVideoPrompts,
+  VideoPromptGenerationInput,
+  VideoPromptGenerationOutput 
+};

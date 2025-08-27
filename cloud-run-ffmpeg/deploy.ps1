@@ -2,11 +2,11 @@
 # This is the Windows PowerShell equivalent of deploy.sh
 
 # Configuration
-$PROJECT_ID = "static-groove-464313-t4"
+$PROJECT_ID = "vidzyme"
 $SERVICE_NAME = "ffmpeg-video-merger"
 $REGION = "us-central1"
 $IMAGE_NAME = "gcr.io/$PROJECT_ID/$SERVICE_NAME"
-$STORAGE_BUCKET = "static-groove-464313-t4.appspot.com"
+$STORAGE_BUCKET = "vidzyme.appspot.com"
 
 Write-Host "Starting FFmpeg Cloud Run deployment..." -ForegroundColor Green
 Write-Host "Project: $PROJECT_ID" -ForegroundColor Cyan

@@ -13,9 +13,6 @@ setGlobalOptions({
 // Load environment variables
 require('dotenv').config();
 
-// Initialize Genkit configuration
-require('./src/index');
-
 // CORS middleware wrapper
 function withCors(handler) {
   return onRequest(async (req, res) => {
@@ -30,59 +27,60 @@ function withCors(handler) {
   });
 }
 
-// Import all flows
-const { imageAnalysisFlow } = require('./src/imageAnalysis');
-const { promptGenerationFlow } = require('./src/promptGeneration');
-const { imageGenerationFlow } = require('./src/imageGeneration');
-const { videoPromptGenerationFlow } = require('./src/videoPromptGeneration');
-const { videoGenerationFlow } = require('./src/videoGeneration');
-const { sequentialVideoGenerationFlow } = require('./src/sequentialVideoGeneration');
-const { videoCreationFlow } = require('./src/orchestration');
-const { frameExtractionFlow } = require('./src/frameExtraction');
+// Import all direct API functions
+const { analyzeImage } = require('./src/imageAnalysis');
+const { generatePrompts, generateImagePrompt } = require('./src/promptGeneration');
+const { generateImages } = require('./src/imageGeneration');
+const { generateVideoPrompts } = require('./src/videoPromptGeneration');
+const { generateVideos } = require('./src/videoGeneration');
+const { createVideo } = require('./src/orchestration');
 
 // Export Cloud Functions
 exports.imageAnalysis = withCors(async (req, res) => {
-  const result = await imageAnalysisFlow(req.body);
+  const result = await analyzeImage(req.body.imageUrl);
   res.json(result);
 });
 
 exports.promptGeneration = withCors(async (req, res) => {
-  const result = await promptGenerationFlow(req.body);
+  const result = await generatePrompts(req.body);
   res.json(result);
 });
 
 exports.imageGeneration = withCors(async (req, res) => {
-  const result = await imageGenerationFlow(req.body);
+  const result = await generateImages(req.body);
   res.json(result);
 });
 
 exports.videoPromptGeneration = withCors(async (req, res) => {
-  const result = await videoPromptGenerationFlow(req.body);
+  const result = await generateVideoPrompts(req.body);
   res.json(result);
 });
 
 exports.videoGeneration = withCors(async (req, res) => {
-  const result = await videoGenerationFlow(req.body);
+  const result = await generateVideos(req.body);
   res.json(result);
 });
 
-exports.sequentialVideoGeneration = withCors(async (req, res) => {
-  const result = await sequentialVideoGenerationFlow(req.body);
-  res.json(result);
-});
-
+// Main video creation endpoint
 exports.videoCreation = withCors(async (req, res) => {
-  const result = await videoCreationFlow(req.body);
+  const result = await createVideo(req.body);
   res.json(result);
 });
 
-exports.frameExtraction = withCors(async (req, res) => {
-  const result = await frameExtractionFlow(req.body);
-  res.json(result);
-});
-
-// Export createVideoWithGenkit for frontend compatibility
+// Legacy endpoint for frontend compatibility
 exports.createVideoWithGenkit = withCors(async (req, res) => {
-  const result = await videoCreationFlow(req.body);
+  try {
+    const result = await createVideo(req.body);
+    // Wrap response in data field for frontend compatibility
+    res.json({ data: result });
+  } catch (error) {
+    console.error('Error in createVideoWithGenkit:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Individual prompt generation endpoint for backward compatibility
+exports.generateImagePrompt = withCors(async (req, res) => {
+  const result = await generateImagePrompt(req.body);
   res.json(result);
 });

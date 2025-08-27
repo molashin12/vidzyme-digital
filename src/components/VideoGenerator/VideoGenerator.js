@@ -22,7 +22,7 @@ import {
   DialogContent,
   DialogActions
 } from '@mui/material';
-import { CloudUpload, VideoCall, Settings, CheckCircle, Error } from '@mui/icons-material';
+import { CloudUpload, VideoCall, Settings, CheckCircle, Error as ErrorIcon } from '@mui/icons-material';
 import { useDropzone } from 'react-dropzone';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -404,7 +404,7 @@ function VideoGenerator() {
             </Box>
           ) : error ? (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Error sx={{ color: 'error.main', mr: 1 }} />
+              <ErrorIcon sx={{ color: 'error.main', mr: 1 }} />
               Generation Failed
             </Box>
           ) : (

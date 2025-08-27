@@ -1,28 +1,29 @@
 // Load environment variables
 require('dotenv').config();
 
-const { configureGenkit } = require('@genkit-ai/core');
-const { googleAI } = require('@genkit-ai/googleai');
-const { vertexAI } = require('@genkit-ai/vertexai');
+const { GoogleGenAI } = require('@google/genai');
+const { VertexAI } = require('@google-cloud/vertexai');
+const { GoogleAuth } = require('google-auth-library');
 
-// Configure Genkit with all required plugins
-const ai = configureGenkit({
-  logLevel: 'debug',
-  plugins: [
-    // Google AI plugin for Gemini models
-    googleAI({
-      apiKey: process.env.GOOGLE_AI_API_KEY
-    }),
-
-    // Vertex AI plugin for advanced AI models (Imagen, Veo, etc.)
-    vertexAI({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || 'static-groove-464313-t4',
-      location: 'us-central1'
-    })
-  ]
+// Initialize Google GenAI client
+const genAI = new GoogleGenAI({
+  apiKey: process.env.GOOGLE_AI_API_KEY
 });
 
-module.exports = { ai };
+// Initialize Vertex AI client
+const vertexAI = new VertexAI({
+  project: process.env.GCLOUD_PROJECT || 'vidzyme',
+  location: 'us-central1'
+});
 
-// Genkit flows are automatically registered when required
-// No need to export anything for the new Genkit version
+// Initialize Google Auth for Vertex AI
+const auth = new GoogleAuth({
+  scopes: ['https://www.googleapis.com/auth/cloud-platform']
+});
+
+// Export clients for use in other modules
+module.exports = {
+  genAI,
+  vertexAI,
+  auth
+};
