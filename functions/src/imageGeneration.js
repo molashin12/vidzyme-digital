@@ -11,165 +11,121 @@ const bucketName = process.env.GOOGLE_CLOUD_STORAGE_BUCKET || 'vidzyme.firebases
 
 // Input/Output schemas
 const ImageGenerationInput = z.object({
-  scenes: z.array(z.object({
-    id: z.string(),
-    imagePrompt: z.string(),
-    description: z.string().optional(),
-    referenceImage: z.object({
-      imageUrl: z.string().optional(),
-      base64Data: z.string().optional(),
-      mimeType: z.string().default('image/png')
-    }).optional()
-  })),
-  style: z.enum(['photographic', 'digital_art', 'cinematic', 'artistic']).default('cinematic'),
-  aspectRatio: z.enum(['1:1', '4:3', '16:9', '9:16']).default('16:9'),
-  quality: z.enum(['standard', 'high']).default('high'),
-  sampleCount: z.number().min(1).max(4).default(1)
+  imagePrompt: z.string().describe('Generated image prompt from promptGeneration step'),
+  referenceImageUrl: z.string().url().describe('URL of the user-uploaded reference image')
 });
 
 const ImageGenerationOutput = z.object({
-  generatedImages: z.array(z.object({
-    sceneId: z.string(),
-    imageUrl: z.string(),
-    prompt: z.string(),
-    metadata: z.object({
-      width: z.number(),
-      height: z.number(),
-      format: z.string(),
-      size: z.number()
-    })
-  })),
-  totalImages: z.number(),
-  processingTime: z.number()
+  imageUrl: z.string().describe('URL of the generated image'),
+  prompt: z.string().describe('The prompt used for generation'),
+  metadata: z.object({
+    width: z.number(),
+    height: z.number(),
+    format: z.string(),
+    size: z.number()
+  })
 });
 
 /**
  * Generate images using Gemini 2.5 Flash Image Preview model
+ * Integrates with promptGeneration.js output and user reference image
  * @param {Object} input - Image generation parameters
  * @returns {Object} Generated images with metadata
  */
 async function generateImages(input) {
-  const { scenes, style, aspectRatio, quality, sampleCount } = ImageGenerationInput.parse(input);
   const startTime = Date.now();
 
   try {
-    console.log(`Generating ${scenes.length} images using Gemini 2.5 Flash Image Preview...`);
+    const { imagePrompt, referenceImageUrl } = ImageGenerationInput.parse(input);
 
-    const generatedImages = [];
+    console.log('Generating image using Gemini 2.5 Flash Image Preview...');
+    console.log('Image prompt:', imagePrompt);
+    console.log('Reference image URL:', referenceImageUrl);
+
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-image-preview' });
 
-    // Process each scene
-    for (const scene of scenes) {
+    // Prepare content parts
+    const parts = [{ text: imagePrompt }];
+
+    // Add reference image if provided
+    if (referenceImageUrl) {
       try {
-        console.log(`Processing scene: ${scene.id}`);
-
-        // Enhance the prompt based on style and quality
-        const enhancedPrompt = enhancePromptForStyle(scene.imagePrompt, style, quality);
-
-        // Prepare the content array for Gemini
-        const content = [{ text: enhancedPrompt }];
-
-        // Add reference image if provided
-        if (scene.referenceImage) {
-          let base64Image;
-          let mimeType = scene.referenceImage.mimeType || 'image/png';
-
-          if (scene.referenceImage.base64Data) {
-            base64Image = scene.referenceImage.base64Data;
-          } else if (scene.referenceImage.imageUrl) {
-            const downloadResult = await downloadImageAsBase64(scene.referenceImage.imageUrl);
-            base64Image = downloadResult.base64Data;
-            mimeType = downloadResult.mimeType;
+        const downloadResult = await downloadImageAsBase64(referenceImageUrl);
+        parts.push({
+          inline_data: {
+            mime_type: downloadResult.mimeType,
+            data: downloadResult.base64Data
           }
-
-          if (base64Image) {
-            content.push({
-              inlineData: {
-                mimeType: mimeType,
-                data: base64Image
-              }
-            });
-          }
-        }
-
-        // Generate multiple images if sampleCount > 1
-        for (let i = 0; i < sampleCount; i++) {
-          console.log(`Generating image ${i + 1}/${sampleCount} for scene ${scene.id}`);
-
-          const response = await model.generateContent({
-            contents: content
-          });
-
-          // Process the response
-          const result = await response.response;
-
-          for (const part of result.candidates[0].content.parts) {
-            if (part.text) {
-              console.log('Generated text response:', part.text);
-            } else if (part.inlineData) {
-              const imageData = part.inlineData.data;
-              const buffer = Buffer.from(imageData, 'base64');
-
-              // Upload to Google Cloud Storage
-              const fileName = `generated-images/${scene.id}-${i}-${uuidv4()}.png`;
-              const file = storage.bucket(bucketName).file(fileName);
-
-              await file.save(buffer, {
-                metadata: {
-                  contentType: 'image/png',
-                  metadata: {
-                    sceneId: scene.id,
-                    prompt: enhancedPrompt,
-                    style: style,
-                    aspectRatio: aspectRatio,
-                    generatedAt: new Date().toISOString(),
-                    imageIndex: i
-                  }
-                }
-              });
-
-              // Make the file publicly accessible
-              await file.makePublic();
-
-              const imageUrl = `https://storage.googleapis.com/${bucketName}/${fileName}`;
-
-              // Get image metadata
-              const [metadata] = await file.getMetadata();
-              const dimensions = getImageDimensions(aspectRatio);
-
-              generatedImages.push({
-                sceneId: scene.id,
-                imageUrl: imageUrl,
-                prompt: enhancedPrompt,
-                metadata: {
-                  width: dimensions.width,
-                  height: dimensions.height,
-                  format: 'png',
-                  size: parseInt(metadata.size) || 0
-                }
-              });
-
-              console.log(`Image saved: ${imageUrl}`);
-            }
-          }
-        }
+        });
+        console.log('Reference image added to generation request');
       } catch (error) {
-        console.error(`Error generating image for scene ${scene.id}:`, error);
-        throw new Error(`Failed to generate image for scene ${scene.id}: ${error.message}`);
+        console.warn('Failed to download reference image, proceeding without it:', error.message);
       }
     }
 
-    const processingTime = Date.now() - startTime;
-    console.log(`Generated ${generatedImages.length} images in ${processingTime}ms`);
+    console.log('Generating image...');
+    const response = await model.generateContent({
+      contents: [{
+        parts: parts
+      }]
+    });
 
-    return {
-      generatedImages,
-      totalImages: generatedImages.length,
-      processingTime
-    };
+    // Process the response
+    const result = await response.response;
+
+    for (const part of result.candidates[0].content.parts) {
+      if (part.text) {
+        console.log('Generated text response:', part.text);
+      } else if (part.inlineData) {
+        const imageData = part.inlineData.data;
+        const buffer = Buffer.from(imageData, 'base64');
+
+        // Upload to Google Cloud Storage
+        const fileName = `generated-images/image-${uuidv4()}.png`;
+        const file = storage.bucket(bucketName).file(fileName);
+
+        await file.save(buffer, {
+          metadata: {
+            contentType: 'image/png',
+            metadata: {
+              prompt: imagePrompt,
+              generatedAt: new Date().toISOString(),
+              hasReferenceImage: !!referenceImageUrl
+            }
+          }
+        });
+
+        // Make the file publicly accessible
+        await file.makePublic();
+
+        const imageUrl = `https://storage.googleapis.com/${bucketName}/${fileName}`;
+
+        // Get image metadata
+        const [metadata] = await file.getMetadata();
+
+        // Default dimensions (will be updated when we get actual image dimensions)
+        const dimensions = { width: 1024, height: 1024 };
+
+        const processingTime = Date.now() - startTime;
+        console.log(`Generated image in ${processingTime}ms: ${imageUrl}`);
+
+        return {
+          imageUrl: imageUrl,
+          prompt: imagePrompt,
+          metadata: {
+            width: dimensions.width,
+            height: dimensions.height,
+            format: 'png',
+            size: parseInt(metadata.size) || 0
+          }
+        };
+      }
+    }
+
+    throw new Error('No image was generated from the model response');
   } catch (error) {
     console.error('Image generation error:', error);
-    throw new Error(`Failed to generate images: ${error.message}`);
+    throw new Error(`Failed to generate image: ${error.message}`);
   }
 }
 
@@ -201,7 +157,9 @@ async function generateImageWithReference(prompt, referenceImagePath, outputPath
     ];
 
     const response = await model.generateContent({
-      contents: content
+      contents: [{
+        parts: content
+      }]
     });
 
     const result = await response.response;
@@ -253,7 +211,9 @@ async function generateImageFromUrl(prompt, imageUrl, outputPath) {
     ];
 
     const response = await model.generateContent({
-      contents: content
+      contents: [{
+        parts: content
+      }]
     });
 
     const result = await response.response;
@@ -301,10 +261,12 @@ function getImageDimensions(aspectRatio) {
     '1:1': { width: 1024, height: 1024 },
     '4:3': { width: 1024, height: 768 },
     '16:9': { width: 1024, height: 576 },
-    '9:16': { width: 576, height: 1024 }
+    '9:16': { width: 576, height: 1024 },
+    '2:3': { width: 683, height: 1024 }, // Vertical photo format
+    '3:2': { width: 1024, height: 683 } // Horizontal photo format
   };
 
-  return dimensions[aspectRatio] || dimensions['16:9'];
+  return dimensions[aspectRatio] || dimensions['2:3'];
 }
 
 // Helper function to download image from URL and convert to base64
@@ -330,8 +292,33 @@ async function downloadImageAsBase64(imageUrl) {
   }
 }
 
+/**
+ * Generate image from prompt generation output with reference image
+ * This is the main function to be called from the orchestration
+ * @param {string} imagePrompt - YAML prompt from promptGeneration.js
+ * @param {string} aspectRatio - Aspect ratio from promptGeneration.js
+ * @param {string} referenceImageUrl - User uploaded reference image URL
+ * @returns {Object} Generated image data
+ */
+async function generateImageFromPrompt(imagePrompt, referenceImageUrl) {
+  try {
+    const input = {
+      imagePrompt: imagePrompt,
+      referenceImageUrl: referenceImageUrl
+    };
+
+    const result = await generateImages(input);
+
+    return result;
+  } catch (error) {
+    console.error('Error in generateImageFromPrompt:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   generateImages,
+  generateImageFromPrompt,
   generateImageWithReference,
   generateImageFromUrl,
   enhancePromptForStyle,

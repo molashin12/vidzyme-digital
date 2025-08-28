@@ -1,14 +1,12 @@
 // Load environment variables
 require('dotenv').config();
 
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { VertexAI } = require('@google-cloud/vertexai');
 const { GoogleAuth } = require('google-auth-library');
 
 // Initialize Google GenAI client
-const genAI = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_AI_API_KEY
-});
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY);
 
 // Initialize Vertex AI client
 const vertexAI = new VertexAI({

@@ -1,6 +1,12 @@
 const { onRequest } = require('firebase-functions/v2/https');
 const { setGlobalOptions } = require('firebase-functions/v2');
 const cors = require('cors')({ origin: true });
+const admin = require('firebase-admin');
+
+// Initialize Firebase Admin
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
 // Set global options for all functions
 setGlobalOptions({
@@ -30,7 +36,7 @@ function withCors(handler) {
 // Import all direct API functions
 const { analyzeImage } = require('./src/imageAnalysis');
 const { generatePrompts, generateImagePrompt } = require('./src/promptGeneration');
-const { generateImages } = require('./src/imageGeneration');
+const { generateImages, generateImageFromPrompt } = require('./src/imageGeneration');
 const { generateVideoPrompts } = require('./src/videoPromptGeneration');
 const { generateVideos } = require('./src/videoGeneration');
 const { createVideo } = require('./src/orchestration');
@@ -70,7 +76,15 @@ exports.videoCreation = withCors(async (req, res) => {
 // Legacy endpoint for frontend compatibility
 exports.createVideoWithGenkit = withCors(async (req, res) => {
   try {
-    const result = await createVideo(req.body);
+    console.log('Request method:', req.method);
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('Request headers:', req.headers);
+    
+    // For httpsCallable, data is nested under req.body.data
+    const requestData = req.body.data || req.body;
+    console.log('Parsed request data:', JSON.stringify(requestData, null, 2));
+    
+    const result = await createVideo(requestData);
     // Wrap response in data field for frontend compatibility
     res.json({ data: result });
   } catch (error) {

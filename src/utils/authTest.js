@@ -1,5 +1,5 @@
-import { httpsCallable } from 'firebase/functions';
-import { functions, auth } from '../config/firebase';
+import { authAPI } from '../services/api';
+import { auth } from '../config/firebase';
 
 export const testAuthentication = async () => {
   console.log('=== Detailed Authentication Test ===');
@@ -23,17 +23,16 @@ export const testAuthentication = async () => {
     console.log('Token length:', idToken?.length);
     console.log('Token preview:', idToken?.substring(0, 50) + '...');
     
-    // Test function call
-    console.log('Testing getUserStats function call...');
-    const getUserStats = httpsCallable(functions, 'getUserStats');
+    // Test API call
+    console.log('Testing auth API call...');
     
-    console.log('Function instance created, making call...');
-    const result = await getUserStats();
+    console.log('Making API call...');
+    const result = await authAPI.verifyToken();
     
-    console.log('Function call successful!');
-    console.log('Result:', result.data);
+    console.log('API call successful!');
+    console.log('Result:', result);
     
-    return { success: true, data: result.data };
+    return { success: true, data: result };
     
   } catch (error) {
     console.error('Authentication test failed:');
@@ -65,20 +64,17 @@ export const testAuthentication = async () => {
 };
 
 export const testFunctionConnection = async () => {
-  console.log('=== Testing Function Connection ===');
+  console.log('=== Testing API Connection ===');
   
   try {
-    // Test if we can create the function reference
-    const getUserStats = httpsCallable(functions, 'getUserStats');
-    console.log('Function reference created successfully');
+    // Test if we can connect to the backend API
+    const { healthAPI } = await import('../services/api');
+    const healthResult = await healthAPI.checkHealth();
+    console.log('API health check successful:', healthResult);
     
-    // Check functions configuration
-    console.log('Functions app:', functions.app.name);
-    console.log('Functions region:', functions._region);
-    
-    return { success: true };
+    return { success: true, data: healthResult };
   } catch (error) {
-    console.error('Function connection test failed:', error);
+    console.error('API connection test failed:', error);
     return { success: false, error: error.message };
   }
 };

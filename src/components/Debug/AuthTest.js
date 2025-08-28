@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button, Box, Typography, Paper, Alert } from '@mui/material';
-import { httpsCallable } from 'firebase/functions';
-import { functions, auth } from '../../config/firebase';
+import { auth } from '../../config/firebase';
 import { testAuthentication, testFunctionConnection } from '../../utils/authTest';
 
 function AuthTest() {

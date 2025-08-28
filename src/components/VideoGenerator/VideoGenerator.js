@@ -26,8 +26,8 @@ import { CloudUpload, VideoCall, Settings, CheckCircle, Error as ErrorIcon } fro
 import { useDropzone } from 'react-dropzone';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
-import { storage, db, functions } from '../../config/firebase';
+import { videoAPI } from '../../services/api';
+import { storage, db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
 import AuthTest from '../Debug/AuthTest';
@@ -40,8 +40,7 @@ function VideoGenerator() {
     prompt: '',
     aspectRatio: '16:9',
     duration: 8,
-    videoCount: 1,
-    style: 'modern'
+    videoCount: 1
   });
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -137,33 +136,31 @@ function VideoGenerator() {
       const idToken = await currentUser.getIdToken(true);
       console.log('ID Token obtained:', idToken ? 'Yes' : 'No');
       console.log('Token length:', idToken?.length);
-      console.log('User authenticated, calling createVideoWithGenkit...');
+      console.log('User authenticated, calling videoCreation...');
       
-      // Call new Genkit Cloud Function for video creation
-      const createVideoWithGenkit = httpsCallable(functions, 'createVideoWithGenkit');
-      console.log('Function callable created, making request...');
+      // Call video creation API
+      console.log('Making API request to backend...');
       
       const requestData = {
         imageUrl: downloadURL,
         userPrompt: formData.prompt,
         aspectRatio: formData.aspectRatio,
         duration: formData.duration,
-        videoStyle: formData.style,
-        quality: 'high'
+        userId: currentUser.uid
       };
       console.log('Request data:', requestData);
       
-      const result = await createVideoWithGenkit(requestData);
-      console.log('Function call result:', result);
+      const result = await videoAPI.generateVideo(requestData);
+      console.log('API call result:', result);
       
-      if (result.data.success) {
-        setFinalVideoUrl(result.data.videoUrl);
+      if (result.success) {
+        setFinalVideoUrl(result.finalVideoUrl);
         setSuccess('Video generated successfully!');
         setGenerating(false);
         setJobStatus('COMPLETED');
         setShowProgressDialog(false);
       } else {
-        throw new Error(result.data.error || 'Video generation failed');
+        throw new Error(result.error || 'Video generation failed');
       }
       
     } catch (error) {
@@ -194,9 +191,8 @@ function VideoGenerator() {
         productImage: null,
         prompt: '',
         aspectRatio: '16:9',
-        duration: 15,
-        videoCount: 1,
-        style: 'modern'
+        duration: 8,
+        videoCount: 1
       });
       setJobStatus('PENDING');
     }
@@ -312,24 +308,6 @@ function VideoGenerator() {
                 >
                   <MenuItem value="16:9">16:9 (Landscape)</MenuItem>
                   <MenuItem value="9:16">9:16 (Portrait/Stories)</MenuItem>
-                  <MenuItem value="1:1">1:1 (Square)</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Video Style</InputLabel>
-                <Select
-                  value={formData.style}
-                  label="Video Style"
-                  onChange={(e) => handleInputChange('style', e.target.value)}
-                  disabled={uploading || generating}
-                >
-                  <MenuItem value="modern">Modern & Clean</MenuItem>
-                  <MenuItem value="lifestyle">Lifestyle</MenuItem>
-                  <MenuItem value="energetic">Energetic</MenuItem>
-                  <MenuItem value="minimal">Minimal</MenuItem>
                 </Select>
               </FormControl>
             </Grid>

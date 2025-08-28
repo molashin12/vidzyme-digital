@@ -4,7 +4,7 @@ const { Storage } = require('@google-cloud/storage');
 const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
 const fetch = require('node-fetch');
-const { vertexAI } = require('./index');
+const { GoogleGenAI } = require('@google/genai');
 
 // Initialize Google Cloud Storage
 const storage = new Storage();
@@ -12,212 +12,164 @@ const bucketName = process.env.GOOGLE_CLOUD_STORAGE_BUCKET || 'vidzyme.firebases
 
 // Input/Output schemas
 const VideoGenerationInput = z.object({
-  scenes: z.array(z.object({
-    id: z.string(),
-    imageUrl: z.string(),
-    videoPrompt: z.string(),
-    duration: z.number().optional(),
-    transitions: z.string().optional(),
-    negativePrompt: z.string().optional(),
-    referenceFrameUrl: z.string().optional().describe('Reference frame URL for video continuity')
-  })),
-  overallTheme: z.string(),
-  aspectRatio: z.enum(['16:9', '9:16']).default('16:9'),
-  quality: z.enum(['standard', 'high']).default('high'),
-  model: z.enum(['veo-3.0-generate-preview', 'veo-3.0-fast-generate-preview']).default('veo-3.0-generate-preview'),
-  personGeneration: z.enum(['allow_all', 'allow_adult', 'dont_allow']).default('allow_adult'),
-  enableFrameContinuity: z.boolean().optional().default(false).describe('Enable frame-to-frame continuity')
+  videoPrompt: z.string(),
+  generatedImageUrl: z.string(),
+  aspectRatio: z.enum(['16:9']).default('16:9'), // Veo 3 currently only supports 16:9
+  numberOfVideos: z.number().min(1).max(2), // Veo 3 max 2 videos per request
+  personGeneration: z.enum(['allow_all', 'allow_adult', 'dont_allow']).default('allow_adult')
 });
 
 const VideoGenerationOutput = z.object({
-  generatedVideos: z.array(z.object({
-    sceneId: z.string(),
-    videoUrl: z.string(),
-    duration: z.number(),
-    prompt: z.string(),
-    status: z.enum(['completed', 'failed', 'processing']),
-    metadata: z.object({
-      width: z.number(),
-      height: z.number(),
-      format: z.string(),
-      size: z.number(),
-      fps: z.number()
-    })
-  })),
-  totalVideos: z.number(),
+  finalVideoUrl: z.string(),
+  duration: z.number(),
+  numberOfVideos: z.number(),
   processingTime: z.number(),
-  finalVideoUrl: z.string().optional()
+  metadata: z.object({
+    width: z.number(),
+    height: z.number(),
+    format: z.string(),
+    size: z.number(),
+    fps: z.number()
+  })
 });
 
 // Main video generation function
 async function generateVideos(input) {
-  const { scenes, overallTheme, aspectRatio, quality, model, personGeneration } = input;
+  const { videoPrompt, generatedImageUrl, aspectRatio, numberOfVideos, personGeneration } = input;
   const startTime = Date.now();
+  const model = 'veo-3.0-generate-preview';
 
   try {
-    const generatedVideos = [];
+    const videoUrls = [];
+    let currentImageUrl = generatedImageUrl;
 
-    // Process each scene sequentially to avoid rate limits
-    for (const scene of scenes) {
-      try {
-        console.log(`Generating video for scene: ${scene.id}`);
+    // Initialize Google GenAI client
+    const ai = new GoogleGenAI({apiKey: process.env.GOOGLE_AI_API_KEY});
 
-        // Enhance the video prompt
-        const enhancedPrompt = enhanceVideoPrompt(scene.videoPrompt, overallTheme, quality);
+    // Generate videos sequentially
+    for (let i = 0; i < numberOfVideos; i++) {
+      console.log(`Generating video ${i + 1} of ${numberOfVideos}`);
 
-        // Use reference frame if provided, otherwise use the original image
-        const imageUrl = scene.referenceFrameUrl || scene.imageUrl;
-        console.log(`Using image for video generation: ${imageUrl}`);
+      // Download and convert image to base64
+      const imageData = await downloadImageAsBase64(currentImageUrl);
 
-        // Download and convert image to base64
-        const imageBase64 = await downloadImageAsBase64(imageUrl);
+      // Generate 8-second video using Veo 3 with image input
+      const operation = await ai.models.generateVideos({
+        model: model,
+        prompt: videoPrompt,
+        image: {
+          imageBytes: imageData.base64,
+          mimeType: imageData.mimeType
+        },
+        config: {
+          aspectRatio: '16:9', // Veo 3 currently only supports 16:9
+          personGeneration: personGeneration
+        }
+      });
 
-        // Get the generative model from Vertex AI
-        const generativeModel = vertexAI.getGenerativeModel({
-          model: model,
-          generationConfig: {
-            maxOutputTokens: 8192,
-            temperature: 0.7
-          }
-        });
+      console.log('Initial operation object:', JSON.stringify(operation, null, 2));
 
-        // Prepare the request for video generation
-        const request = {
-          contents: [{
-            role: 'user',
-            parts: [
-              {
-                text: enhancedPrompt
-              },
-              {
-                inlineData: {
-                  mimeType: 'image/png',
-                  data: imageBase64
-                }
-              }
-            ]
-          }],
-          generationConfig: {
-            aspectRatio: aspectRatio,
-            personGeneration: personGeneration
-          }
-        };
+      // Poll the operation status until the video is ready
+      let pollAttempts = 0;
+      const maxPollAttempts = 60; // 10 minutes maximum (60 * 10 seconds)
 
-        if (scene.negativePrompt) {
-          request.contents[0].parts.push({
-            text: `Negative prompt: ${scene.negativePrompt}`
-          });
+      while (!operation.done && pollAttempts < maxPollAttempts) {
+        console.log(`Waiting for video ${i + 1} generation to complete... (attempt ${pollAttempts + 1}/${maxPollAttempts})`);
+        await new Promise((resolve) => setTimeout(resolve, 10000));
+        pollAttempts++;
+
+        // Poll the operation status using the proper SDK method
+        try {
+          operation = await ai.operations.getVideosOperation({ operation: operation });
+          console.log(`Operation status update:`, JSON.stringify({ done: operation.done, name: operation.name }, null, 2));
+        } catch (error) {
+          console.warn(`Failed to poll operation status: ${error.message}`);
+          // Continue with the loop, don't break on polling errors
+        }
+      }
+
+      if (pollAttempts >= maxPollAttempts && !operation.done) {
+        throw new Error(`Video generation timed out after ${maxPollAttempts * 10} seconds`);
+      }
+
+      console.log('Operation completed:', JSON.stringify(operation, null, 2));
+
+      if (operation.response && operation.response.generatedVideos && operation.response.generatedVideos[0]) {
+        const generatedVideo = operation.response.generatedVideos[0];
+
+        console.log('Generated video object:', JSON.stringify(generatedVideo, null, 2));
+
+        // Check if video property exists
+        if (!generatedVideo.video) {
+          throw new Error(`Video property not found in generated video object. Available properties: ${Object.keys(generatedVideo).join(', ')}`);
         }
 
-        // Generate video using Vertex AI Veo 3
-        const result = await generativeModel.generateContent(request);
+        // Create a unique filename for this video segment
+        const fileName = `generated-videos/video-${i + 1}-${uuidv4()}.mp4`;
 
-        if (result.response && result.response.candidates && result.response.candidates[0]) {
-          const candidate = result.response.candidates[0];
+        // Download the video using the correct method
+        const tempLocalPath = `/tmp/temp-video-${i + 1}.mp4`;
 
-          // Look for video data in the response
-          let videoData = null;
-          for (const part of candidate.content.parts) {
-            if (part.inlineData && part.inlineData.mimeType && part.inlineData.mimeType.startsWith('video/')) {
-              videoData = part.inlineData.data;
-              break;
+        await ai.files.download({
+          file: generatedVideo.video,
+          downloadPath: tempLocalPath
+        });
+
+        // Upload to Cloud Storage
+        const file = storage.bucket(bucketName).file(fileName);
+        await file.save(require('fs').readFileSync(tempLocalPath), {
+          metadata: {
+            contentType: 'video/mp4',
+            metadata: {
+              videoIndex: i + 1,
+              prompt: videoPrompt,
+              aspectRatio: aspectRatio,
+              generatedAt: new Date().toISOString(),
+              model: model
             }
           }
-
-          if (videoData) {
-            // Save video to Google Cloud Storage
-            const fileName = `generated-videos/${scene.id}-${uuidv4()}.mp4`;
-            const file = storage.bucket(bucketName).file(fileName);
-
-            const videoBuffer = Buffer.from(videoData, 'base64');
-
-            await file.save(videoBuffer, {
-              metadata: {
-                contentType: 'video/mp4',
-                metadata: {
-                  sceneId: scene.id,
-                  prompt: enhancedPrompt,
-                  aspectRatio: aspectRatio,
-                  generatedAt: new Date().toISOString(),
-                  theme: overallTheme,
-                  model: model
-                }
-              }
-            });
-
-            // Make the file publicly accessible
-            await file.makePublic();
-
-            const videoUrl = `https://storage.googleapis.com/${bucketName}/${fileName}`;
-
-            // Get video metadata
-            const [metadata] = await file.getMetadata();
-            const dimensions = getVideoDimensions(aspectRatio);
-
-            generatedVideos.push({
-              sceneId: scene.id,
-              videoUrl: videoUrl,
-              duration: scene.duration || 5, // Default 5 seconds
-              prompt: enhancedPrompt,
-              status: 'completed',
-              metadata: {
-                width: dimensions.width,
-                height: dimensions.height,
-                format: 'mp4',
-                size: parseInt(metadata.size) || 0,
-                fps: 24
-              }
-            });
-
-            console.log(`Video generated successfully for scene: ${scene.id}`);
-          } else {
-            throw new Error('No video data found in response');
-          }
-        } else {
-          throw new Error('No valid response from video generation model');
-        }
-      } catch (error) {
-        console.error(`Error generating video for scene ${scene.id}:`, error);
-
-        // Add failed entry
-        generatedVideos.push({
-          sceneId: scene.id,
-          videoUrl: '',
-          duration: scene.duration || 5,
-          prompt: scene.videoPrompt,
-          status: 'failed',
-          metadata: {
-            width: 0,
-            height: 0,
-            format: 'mp4',
-            size: 0,
-            fps: 24
-          }
         });
+
+        // Clean up temp file
+        require('fs').unlinkSync(tempLocalPath);
+
+        // Make the file publicly accessible
+        await file.makePublic();
+
+        const videoUrl = `https://storage.googleapis.com/${bucketName}/${fileName}`;
+        videoUrls.push(videoUrl);
+
+        console.log(`Video ${i + 1} generated successfully: ${videoUrl}`);
+
+        // Extract last frame for next video (if not the last video)
+        if (i < numberOfVideos - 1) {
+          currentImageUrl = await extractLastFrame(videoUrl, i + 1);
+          console.log(`Extracted last frame for next video: ${currentImageUrl}`);
+        }
+      } else {
+        throw new Error(`No valid response from video generation model for video ${i + 1}`);
       }
     }
+
+    // Combine all videos into final video
+    const finalVideoUrl = await combineVideos(videoUrls, aspectRatio);
+    const dimensions = getVideoDimensions(aspectRatio);
+    const totalDuration = numberOfVideos * 8; // 8 seconds per video
 
     const processingTime = Date.now() - startTime;
 
-    // Optionally combine videos into a single final video
-    let finalVideoUrl;
-    const successfulVideos = generatedVideos.filter((v) => v.status === 'completed');
-
-    if (successfulVideos.length > 1) {
-      try {
-        finalVideoUrl = await combineVideos(successfulVideos, overallTheme);
-      } catch (combineError) {
-        console.warn('Failed to combine videos:', combineError.message);
-      }
-    } else if (successfulVideos.length === 1) {
-      finalVideoUrl = successfulVideos[0].videoUrl;
-    }
-
     return {
-      generatedVideos,
-      totalVideos: generatedVideos.length,
+      finalVideoUrl,
+      duration: totalDuration,
+      numberOfVideos,
       processingTime,
-      finalVideoUrl
+      metadata: {
+        width: dimensions.width,
+        height: dimensions.height,
+        format: 'mp4',
+        size: 0, // Will be updated after final video is created
+        fps: 24
+      }
     };
   } catch (error) {
     console.error('Video generation error:', error);
@@ -225,17 +177,36 @@ async function generateVideos(input) {
   }
 }
 
-// Helper function to enhance video prompts
-function enhanceVideoPrompt(basePrompt, theme, quality) {
-  const qualityEnhancements = {
-    standard: 'smooth motion, clear video quality',
-    high: 'ultra smooth motion, cinematic quality, professional video production, 4K quality'
-  };
+// Helper function to extract last frame from video using FFmpeg
+async function extractLastFrame(videoUrl, videoIndex) {
+  try {
+    // Call the Cloud Run FFmpeg service to extract last frame
+    const ffmpegServiceUrl = process.env.FFMPEG_SERVICE_URL;
 
-  return `${basePrompt}. Theme: ${theme}. ${qualityEnhancements[quality]}. Smooth camera movements, professional cinematography.`;
+    if (!ffmpegServiceUrl) {
+      throw new Error('FFMPEG_SERVICE_URL environment variable is not set');
+    }
+
+    const response = await axios.post(`${ffmpegServiceUrl}/extract-frame`, {
+      videoUrl: videoUrl,
+      framePosition: 'last',
+      outputFormat: 'png'
+    }, {
+      timeout: 60000 // 1 minute timeout
+    });
+
+    if (!response.data.frameUrl) {
+      throw new Error('No frame URL returned from FFmpeg service');
+    }
+
+    return response.data.frameUrl;
+  } catch (error) {
+    console.error(`Error extracting last frame from video ${videoIndex}:`, error);
+    throw new Error(`Failed to extract last frame: ${error.message}`);
+  }
 }
 
-// Helper function to download image as base64
+// Helper function to download image as base64 with MIME type detection
 async function downloadImageAsBase64(imageUrl) {
   try {
     const response = await fetch(imageUrl);
@@ -244,7 +215,25 @@ async function downloadImageAsBase64(imageUrl) {
     }
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    return buffer.toString('base64');
+    const base64 = buffer.toString('base64');
+    
+    // Get MIME type from response headers or detect from URL
+    let mimeType = response.headers.get('content-type');
+    if (!mimeType) {
+      // Fallback: detect from URL extension
+      const urlLower = imageUrl.toLowerCase();
+      if (urlLower.includes('.jpg') || urlLower.includes('.jpeg')) {
+        mimeType = 'image/jpeg';
+      } else if (urlLower.includes('.png')) {
+        mimeType = 'image/png';
+      } else if (urlLower.includes('.webp')) {
+        mimeType = 'image/webp';
+      } else {
+        mimeType = 'image/jpeg'; // Default fallback
+      }
+    }
+    
+    return { base64, mimeType };
   } catch (error) {
     console.error('Error downloading image:', error);
     throw new Error(`Failed to download image from ${imageUrl}: ${error.message}`);
@@ -254,36 +243,39 @@ async function downloadImageAsBase64(imageUrl) {
 // Helper function to get video dimensions for Veo 3
 function getVideoDimensions(aspectRatio) {
   const dimensions = {
-    '16:9': { width: 1920, height: 1080 },
-    '9:16': { width: 1080, height: 1920 }
+    '16:9': { width: 1280, height: 720 }, // Veo 3 outputs 720p
+    '9:16': { width: 720, height: 1280 }
   };
 
   return dimensions[aspectRatio] || dimensions['16:9'];
 }
 
 // Helper function to combine multiple videos
-async function combineVideos(videos, theme) {
+async function combineVideos(videoUrls, aspectRatio) {
   try {
     // Call the Cloud Run FFmpeg service to combine videos
-    const ffmpegServiceUrl = process.env.FFMPEG_SERVICE_URL || 'https://ffmpeg-service-url';
+    const ffmpegServiceUrl = process.env.FFMPEG_SERVICE_URL;
 
-    const response = await axios.post(`${ffmpegServiceUrl}/combine-videos`, {
-      videos: videos.map((v) => ({
-        url: v.videoUrl,
-        duration: v.duration,
-        sceneId: v.sceneId
-      })),
-      outputSettings: {
-        format: 'mp4',
-        quality: 'high',
-        transitions: true,
-        theme: theme
-      }
+    if (!ffmpegServiceUrl) {
+      throw new Error('FFMPEG_SERVICE_URL environment variable is not set');
+    }
+
+    // Generate unique output filename
+    const outputFileName = `combined-video-${Date.now()}.mp4`;
+
+    const response = await axios.post(`${ffmpegServiceUrl}/concatenate-sequential-videos`, {
+      clipUrls: videoUrls,
+      outputFileName: outputFileName,
+      transitions: false // No transitions for seamless concatenation
     }, {
-      timeout: 300000 // 5 minutes timeout
+      timeout: 600000 // 10 minutes timeout for longer videos
     });
 
-    return response.data.combinedVideoUrl;
+    if (!response.data.finalVideoUrl) {
+      throw new Error('No final video URL returned from FFmpeg service');
+    }
+
+    return response.data.finalVideoUrl;
   } catch (error) {
     console.error('Error combining videos:', error);
     throw new Error(`Failed to combine videos: ${error.message}`);
@@ -292,6 +284,7 @@ async function combineVideos(videos, theme) {
 
 module.exports = {
   generateVideos,
+  extractLastFrame,
   VideoGenerationInput,
   VideoGenerationOutput
 };

@@ -20,7 +20,9 @@
   "functions": {
     "source": "functions",
     "runtime": "nodejs18",
-    "codebase": "default"
+    "codebase": "default",
+    "timeout": "540s",
+    "memory": "1GB"
   },
   "storage": {
     "rules": "storage.rules"

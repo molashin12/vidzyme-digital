@@ -1,275 +1,227 @@
 const { z } = require('zod');
 const { analyzeImage } = require('./imageAnalysis');
-const { generatePrompts, generateImagePrompt } = require('./promptGeneration');
-const { generateImages } = require('./imageGeneration');
+const { generatePrompts } = require('./promptGeneration');
+const { generateImageFromPrompt } = require('./imageGeneration');
 const { generateVideoPrompts } = require('./videoPromptGeneration');
 const { generateVideos } = require('./videoGeneration');
 // Removed sequentialVideoGenerationFlow import to avoid circular dependency
 
 // Input/Output schemas for the main orchestration flow
 const VideoCreationInput = z.object({
-  imageUrl: z.string().url().describe('URL of the input image'),
+  imageUrl: z.string().url().describe('URL of the input image (also used as reference image)'),
   userPrompt: z.string().describe('User-provided prompt or theme for the video'),
-  videoStyle: z.enum(['cinematic', 'documentary', 'artistic', 'commercial', 'social']).default('cinematic'),
-  duration: z.number().min(5).max(30).default(10),
-  aspectRatio: z.enum(['1:1', '4:3', '16:9', '9:16']).default('16:9'),
-  quality: z.enum(['standard', 'high']).default('high'),
-  userId: z.string().describe('User ID for tracking and storage'),
-  enableFrameContinuity: z.boolean().optional().default(true).describe('Enable frame-to-frame continuity for seamless video transitions'),
+  duration: z.number().min(8).max(64).default(8).describe('Video duration in seconds (must be multiple of 8)'),
+  aspectRatio: z.enum(['16:9', '9:16']).default('16:9'),
+  userId: z.string().describe('User ID for tracking and storage')
 });
 
 const VideoCreationOutput = z.object({
   success: z.boolean(),
   videoId: z.string(),
   finalVideoUrl: z.string().optional(),
-  scenes: z.array(z.object({
-    id: z.string(),
-    imageUrl: z.string(),
-    videoUrl: z.string(),
-    duration: z.number(),
-  })),
+  duration: z.number(),
+  numberOfVideos: z.number(),
   metadata: z.object({
     totalDuration: z.number(),
-    totalScenes: z.number(),
     processingTime: z.number(),
     imageAnalysis: z.object({
       labels: z.array(z.string()),
-      summary: z.string(),
+      summary: z.string()
     }),
-    theme: z.string(),
-    style: z.string(),
-    quality: z.string(),
+    theme: z.string()
   }),
-  error: z.string().optional(),
+  error: z.string().optional()
 });
 
 // Main video creation function
 async function createVideo(input) {
-    const {
+  // Validate and parse input using Zod schema
+  const {
+    imageUrl,
+    userPrompt,
+    duration,
+    aspectRatio,
+    userId
+  } = VideoCreationInput.parse(input);
+
+  // Use imageUrl as referenceImageUrl
+  const referenceImageUrl = imageUrl;
+
+  const startTime = Date.now();
+  const videoId = `video_${userId}_${Date.now()}`;
+
+  try {
+    console.log(`Starting video creation flow for user: ${userId}`);
+
+    // Step 1: Analyze the input image
+    console.log('Step 1: Analyzing input image...');
+    const imageAnalysis = await analyzeImage({
       imageUrl,
-      userPrompt,
-      videoStyle,
-      duration,
-      aspectRatio,
-      quality,
-      userId,
-      enableFrameContinuity
-    } = input;
-    
-    const startTime = Date.now();
-    const videoId = `video_${userId}_${Date.now()}`;
-    
-    try {
-      console.log(`Starting video creation flow for user: ${userId}`);
-      
-      // Step 1: Analyze the input image
-      console.log('Step 1: Analyzing input image...');
-      const imageAnalysis = await analyzeImage({
-        imageUrl,
-        analysisType: 'comprehensive',
-      });
-      
-      console.log('Image analysis completed:', {
-        labels: imageAnalysis.labels.length,
-        objects: imageAnalysis.objects.length,
-        summary: imageAnalysis.summary.substring(0, 100) + '...',
-      });
-      
-      // Step 2: Generate prompts and scene planning
-      console.log('Step 2: Generating prompts and planning scenes...');
-      const promptGeneration = await generatePrompts({
-        imageAnalysis: {
-          labels: imageAnalysis.labels,
-          objects: imageAnalysis.objects,
-          summary: imageAnalysis.summary,
-        },
-        userPrompt,
-        videoStyle,
-        duration,
-      });
-      
-      console.log('Prompt generation completed:', {
-        scenes: promptGeneration.scenes.length,
-        theme: promptGeneration.overallTheme,
-      });
-      
-      // Step 3: Generate images for each scene
-      console.log('Step 3: Generating images for scenes...');
-      const imageGeneration = await generateImages({
-        scenes: promptGeneration.scenes.map(scene => ({
-          id: scene.id,
-          imagePrompt: scene.imagePrompt,
-          description: scene.description,
-        })),
-        style: mapVideoStyleToImageStyle(videoStyle),
-        aspectRatio,
-        quality,
-      });
-      
-      console.log('Image generation completed:', {
-        totalImages: imageGeneration.totalImages,
-        processingTime: imageGeneration.processingTime,
-      });
-      
-      // Step 4: Generate video prompts
-      console.log('Step 4: Generating video prompts...');
-      const videoPromptGeneration = await generateVideoPrompts({
-        imageAnalysis: imageAnalysis.summary,
-        userInstructions: userPrompt,
-        totalDuration: duration,
-        perVideoLength: 8,
-        aspectRatio: aspectRatio === '9:16' ? '9:16' : '16:9',
-        model: 'veo3_fast',
-        dialogueScript: undefined,
-      });
-      
-      console.log('Video prompt generation completed:', {
-        scenes: videoPromptGeneration.scenes.length,
-      });
-      
-      // Step 5: Generate videos from images
-      console.log('Step 5: Generating videos from images...');
-      
-      const scenesData = videoPromptGeneration.scenes.map((videoScene, index) => {
-        const imageScene = promptGeneration.scenes[index];
-        const generatedImage = imageGeneration.generatedImages.find(
-          img => img.sceneId === imageScene?.id
-        );
-        return {
-          id: imageScene?.id || `scene_${index}`,
-          imageUrl: generatedImage?.imageUrl || '',
-          videoPrompt: videoScene.video_prompt,
-          duration: 8, // Fixed duration from video prompt generation
-          transitions: imageScene?.transitions,
-        };
-      });
-      
-      let videoGeneration;
-      
-      // Use standard video generation (sequential generation removed to avoid circular dependency)
-      console.log('Using standard video generation...');
-      videoGeneration = await generateVideos({
-        scenes: scenesData,
-        overallTheme: promptGeneration.overallTheme,
-        aspectRatio: videoPromptGeneration.scenes[0]?.aspect_ratio_video || aspectRatio,
-        quality,
-        model: videoPromptGeneration.scenes[0]?.model || 'veo-3.0-fast-generate-preview',
-        enableFrameContinuity: enableFrameContinuity && scenesData.length > 1,
-      });
-      
-      console.log('Video generation completed:', {
-        totalVideos: videoGeneration.totalVideos,
-        processingTime: videoGeneration.processingTime,
-        finalVideoUrl: videoGeneration.finalVideoUrl,
-      });
-      
-      // Prepare the final response
-      const totalProcessingTime = Date.now() - startTime;
-      const successfulVideos = videoGeneration.generatedVideos.filter(
-        v => v.status === 'completed'
-      );
-      
-      const scenes = successfulVideos.map(video => {
-        const scene = promptGeneration.scenes.find(s => s.id === video.sceneId);
-        const image = imageGeneration.generatedImages.find(i => i.sceneId === video.sceneId);
-        
-        return {
-          id: video.sceneId,
-          imageUrl: image?.imageUrl || '',
-          videoUrl: video.videoUrl,
-          duration: video.duration,
-        };
-      });
-      
-      const totalDuration = scenes.reduce((sum, scene) => sum + scene.duration, 0);
-      
-      // Store metadata in Firestore for tracking
-      await storeVideoMetadata(videoId, {
-        userId,
-        input,
-        imageAnalysis,
-        promptGeneration,
-        imageGeneration,
-        videoPromptGeneration,
-        videoGeneration,
-        processingTime: totalProcessingTime,
-        createdAt: new Date(),
-      });
-      
-      return {
-        success: true,
-        videoId,
-        finalVideoUrl: videoGeneration.finalVideoUrl,
-        scenes,
-        metadata: {
-          totalDuration,
-          totalScenes: scenes.length,
-          processingTime: totalProcessingTime,
-          imageAnalysis: {
-            labels: imageAnalysis.labels.slice(0, 5).map(l => l.description),
-            summary: imageAnalysis.summary,
-          },
-          theme: promptGeneration.overallTheme,
-          style: videoStyle,
-          quality,
-        },
-      };
-      
-    } catch (error) {
-      console.error('Video creation flow error:', error);
-      
-      // Store error metadata
-      await storeVideoMetadata(videoId, {
-        userId,
-        input,
-        error: error.message,
-        processingTime: Date.now() - startTime,
-        createdAt: new Date(),
-        status: 'failed',
-      });
-      
-      return {
-        success: false,
-        videoId,
-        scenes: [],
-        metadata: {
-          totalDuration: 0,
-          totalScenes: 0,
-          processingTime: Date.now() - startTime,
-          imageAnalysis: {
-            labels: [],
-            summary: '',
-          },
-          theme: '',
-          style: videoStyle,
-          quality,
-        },
-        error: error.message,
-      };
+      analysisType: 'comprehensive'
+    });
+
+    console.log('Image analysis completed:', {
+      labels: imageAnalysis.labels.length,
+      objects: imageAnalysis.objects.length,
+      summary: imageAnalysis.summary.substring(0, 100) + '...'
+    });
+
+    // Step 2: Generate image prompt
+    console.log('Step 2: Generating image prompt...');
+    const promptGeneration = await generatePrompts({
+      imageAnalysis: {
+        labels: imageAnalysis.labels,
+        objects: imageAnalysis.objects,
+        summary: imageAnalysis.summary
+      },
+      userPrompt
+    });
+
+    console.log('Image prompt generation completed:', {
+      imagePrompt: promptGeneration.image_prompt.substring(0, 100) + '...'
+    });
+
+    // Step 3: Generate image using prompt from promptGeneration and reference image
+    console.log('Step 3: Generating image using generated prompt and reference image...');
+
+    // Use the image_prompt from promptGeneration output
+    const imagePrompt = promptGeneration.image_prompt;
+
+    if (!imagePrompt) {
+      throw new Error('No image prompt generated from promptGeneration step');
     }
+
+    console.log('Using image prompt:', imagePrompt);
+    console.log('Reference image URL:', referenceImageUrl);
+
+    const imageGeneration = await generateImageFromPrompt(
+        imagePrompt,
+        referenceImageUrl
+    );
+    const generatedImageUrl = imageGeneration.imageUrl;
+
+    console.log('Image generation completed:', {
+      imageUrl: generatedImageUrl
+    });
+
+    // Step 4: Generate video prompt
+    console.log('Step 4: Generating video prompt...');
+    const videoPromptGeneration = await generateVideoPrompts({
+      imageAnalysis: imageAnalysis.summary,
+      userInstructions: userPrompt,
+      generatedImageUrl: generatedImageUrl,
+      aspectRatio: aspectRatio
+    });
+
+    console.log('Video prompt generation completed:', {
+      videoPrompt: videoPromptGeneration.video_prompt.substring(0, 100) + '...',
+      aspectRatio: videoPromptGeneration.aspect_ratio_video
+    });
+
+    // Step 5: Generate sequential videos
+    console.log('Step 5: Generating sequential videos...');
+
+    // Calculate number of 8-second videos needed
+    const numberOfVideos = Math.ceil(duration / 8);
+
+    console.log(`Generating ${numberOfVideos} videos of 8 seconds each for total duration of ${duration} seconds...`);
+    const videoGeneration = await generateVideos({
+      videoPrompt: videoPromptGeneration.video_prompt,
+      generatedImageUrl: generatedImageUrl,
+      aspectRatio: aspectRatio,
+      numberOfVideos: numberOfVideos
+    });
+
+    console.log('Video generation completed:', {
+      numberOfVideos: videoGeneration.numberOfVideos,
+      duration: videoGeneration.duration,
+      finalVideoUrl: videoGeneration.finalVideoUrl
+    });
+
+    // Prepare the final response
+    const totalProcessingTime = Date.now() - startTime;
+
+    // Store metadata in Firestore for tracking
+    await storeVideoMetadata({
+      videoId,
+      userId,
+      userPrompt,
+      imageUrl,
+      aspectRatio,
+      duration: videoGeneration.duration,
+      numberOfVideos: videoGeneration.numberOfVideos,
+      processingTime: totalProcessingTime,
+      finalVideoUrl: videoGeneration.finalVideoUrl,
+      createdAt: new Date()
+    });
+
+    const result = {
+      success: true,
+      videoId,
+      duration: videoGeneration.duration,
+      numberOfVideos: videoGeneration.numberOfVideos,
+      metadata: {
+        totalDuration: videoGeneration.duration,
+        processingTime: totalProcessingTime,
+        imageAnalysis: {
+          labels: imageAnalysis.labels.slice(0, 5).map((l) => l.description),
+          summary: imageAnalysis.summary
+        },
+        theme: promptGeneration.image_prompt.substring(0, 100) + '...'
+      }
+    };
+
+    // Only include finalVideoUrl if it exists
+    if (videoGeneration.finalVideoUrl) {
+      result.finalVideoUrl = videoGeneration.finalVideoUrl;
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Video creation flow error:', error);
+
+    // Store error metadata
+    await storeVideoMetadata({
+      videoId,
+      userId,
+      userPrompt,
+      imageUrl,
+      aspectRatio,
+      error: error.message,
+      processingTime: Date.now() - startTime,
+      createdAt: new Date(),
+      status: 'failed'
+    });
+
+    return {
+      success: false,
+      videoId,
+      duration: 0,
+      numberOfVideos: 0,
+      metadata: {
+        totalDuration: 0,
+        processingTime: Date.now() - startTime,
+        imageAnalysis: {
+          labels: [],
+          summary: ''
+        },
+        theme: ''
+      },
+      error: error.message
+    };
+  }
 }
 
-// Helper function to map video style to image style
-function mapVideoStyleToImageStyle(videoStyle) {
-  const styleMapping = {
-    cinematic: 'cinematic',
-    documentary: 'photographic',
-    artistic: 'artistic',
-    commercial: 'digital_art',
-    social: 'digital_art',
-  };
-  
-  return styleMapping[videoStyle] || 'cinematic';
-}
+// Removed unused function mapVideoStyleToImageStyle
 
 // Helper function to store video metadata in Firestore
-async function storeVideoMetadata(videoId, metadata) {
+async function storeVideoMetadata(metadata) {
   try {
     const admin = require('firebase-admin');
     const db = admin.firestore();
-    
-    await db.collection('videos').doc(videoId).set(metadata);
-    console.log(`Metadata stored for video: ${videoId}`);
+
+    await db.collection('videos').doc(metadata.videoId).set(metadata);
+    console.log(`Metadata stored for video: ${metadata.videoId}`);
   } catch (error) {
     console.error('Error storing video metadata:', error);
     // Don't throw error as this is not critical for the main flow
