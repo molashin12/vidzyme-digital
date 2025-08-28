@@ -1,5 +1,5 @@
 const { z } = require('zod');
-const axios = require('axios');
+const { extractFrameLocally } = require('./localFrameExtraction');
 
 // Input schema for frame extraction
 const FrameExtractionInput = z.object({
@@ -31,34 +31,20 @@ const extractFrame = async (input) => {
       outputFormat: validatedInput.outputFormat
     });
 
-    // Get FFmpeg service URL from environment
-    const ffmpegServiceUrl = process.env.FFMPEG_SERVICE_URL || 'https://your-ffmpeg-service-url';
-
-    if (!ffmpegServiceUrl || ffmpegServiceUrl === 'https://your-ffmpeg-service-url') {
-      throw new Error('FFMPEG_SERVICE_URL environment variable not configured');
-    }
-
-    // Call FFmpeg service for frame extraction
-    const response = await axios.post(`${ffmpegServiceUrl}/extract-frame`, {
-      videoUrl: validatedInput.videoUrl,
-      framePosition: validatedInput.framePosition,
-      outputFormat: validatedInput.outputFormat
-    }, {
-      timeout: 60000, // 60 second timeout
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (response.data.success) {
-      console.log('Frame extraction successful:', response.data.frameUrl);
-      return {
-        success: true,
-        frameUrl: response.data.frameUrl
-      };
-    } else {
-      throw new Error(response.data.error || 'Frame extraction failed');
-    }
+    console.log(`Extracting frame from video using local FFmpeg...`);
+    
+    // Use local FFmpeg service for frame extraction
+    const frameUrl = await extractFrameLocally(
+      validatedInput.videoUrl,
+      validatedInput.framePosition,
+      validatedInput.outputFormat
+    );
+    
+    console.log('Frame extraction successful:', frameUrl);
+    return {
+      success: true,
+      frameUrl: frameUrl
+    };
   } catch (error) {
     console.error('Frame extraction error:', error);
 

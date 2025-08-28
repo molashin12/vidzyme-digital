@@ -39,7 +39,7 @@ FIREBASE_CLIENT_EMAIL=your-client-email
 GEMINI_API_KEY=your-genai-api-key
 
 # Cloud Run FFmpeg Service
-CLOUD_RUN_FFMPEG_URL=your-ffmpeg-service-url
+# CLOUD_RUN_FFMPEG_URL=your-ffmpeg-service-url (No longer needed - using local FFmpeg)
 ```
 
 ### 3. Firebase Service Account

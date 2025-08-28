@@ -6,6 +6,8 @@ const { GoogleGenAI } = require('@google/genai');
 const fs = require('fs'); // Still needed for other operations
 const path = require('path'); // Still needed for other operations
 const { getStorageBucket } = require('../config/firebase');
+const { combineVideosLocally } = require('./localFFmpeg');
+const { extractFrameLocally } = require('./localFrameExtraction');
 
 // Get Firebase Storage bucket
 const bucketName = process.env.GOOGLE_CLOUD_STORAGE_BUCKET || 'vidzyme.firebasestorage.app';
@@ -175,8 +177,18 @@ async function generateVideos(input) {
       }
     }
 
-    // Combine all videos into final video
-    const finalVideoUrl = await combineVideos(videoUrls, aspectRatio);
+    // Determine final video URL based on number of videos
+    let finalVideoUrl;
+    if (numberOfVideos === 1) {
+      // For single video (8 seconds), use the generated video directly without FFmpeg
+      finalVideoUrl = videoUrls[0];
+      console.log('Single video generated, skipping FFmpeg combination');
+    } else {
+      // For multiple videos (longer than 8 seconds), combine using FFmpeg
+      console.log(`Combining ${numberOfVideos} videos using FFmpeg`);
+      finalVideoUrl = await combineVideos(videoUrls, aspectRatio);
+    }
+    
     const dimensions = getVideoDimensions(aspectRatio);
     const totalDuration = numberOfVideos * 8; // 8 seconds per video
 
@@ -209,26 +221,16 @@ async function generateVideos(input) {
  */
 async function extractLastFrame(videoUrl, videoIndex) {
   try {
-    // Call the Cloud Run FFmpeg service to extract last frame
-    const ffmpegServiceUrl = process.env.FFMPEG_SERVICE_URL;
-
-    if (!ffmpegServiceUrl) {
-      throw new Error('FFMPEG_SERVICE_URL environment variable is not set');
+    console.log(`Extracting last frame from video ${videoIndex} using local FFmpeg...`);
+    
+    // Use local FFmpeg service to extract last frame
+    const frameUrl = await extractFrameLocally(videoUrl, 'last', 'png');
+    
+    if (!frameUrl) {
+      throw new Error('No frame URL returned from local FFmpeg service');
     }
 
-    const response = await axios.post(`${ffmpegServiceUrl}/extract-frame`, {
-      videoUrl: videoUrl,
-      framePosition: 'last',
-      outputFormat: 'png'
-    }, {
-      timeout: 60000 // 1 minute timeout
-    });
-
-    if (!response.data.frameUrl) {
-      throw new Error('No frame URL returned from FFmpeg service');
-    }
-
-    return response.data.frameUrl;
+    return frameUrl;
   } catch (error) {
     console.error(`Error extracting last frame from video ${videoIndex}:`, error);
     throw new Error(`Failed to extract last frame: ${error.message}`);
@@ -294,31 +296,15 @@ function getVideoDimensions(aspectRatio) {
  */
 async function combineVideos(videoUrls, aspectRatio) {
   try {
-    // Call the Cloud Run FFmpeg service to combine videos
-    const ffmpegServiceUrl = process.env.FFMPEG_SERVICE_URL;
-
-    if (!ffmpegServiceUrl) {
-      throw new Error('FFMPEG_SERVICE_URL environment variable is not set');
-    }
-
-    // Generate unique output filename
-    const outputFileName = `combined-video-${Date.now()}.mp4`;
-
-    const response = await axios.post(`${ffmpegServiceUrl}/concatenate-sequential-videos`, {
-      clipUrls: videoUrls,
-      outputFileName: outputFileName,
-      transitions: false // No transitions for seamless concatenation
-    }, {
-      timeout: 600000 // 10 minutes timeout for longer videos
-    });
-
-    if (!response.data.finalVideoUrl) {
-      throw new Error('No final video URL returned from FFmpeg service');
-    }
-
-    return response.data.finalVideoUrl;
+    console.log(`Combining ${videoUrls.length} videos locally using FFmpeg...`);
+    
+    // Use local FFmpeg service to combine videos
+    const finalVideoUrl = await combineVideosLocally(videoUrls, aspectRatio);
+    
+    console.log('Videos combined successfully using local FFmpeg');
+    return finalVideoUrl;
   } catch (error) {
-    console.error('Error combining videos:', error);
+    console.error('Error combining videos with local FFmpeg:', error);
     throw new Error(`Failed to combine videos: ${error.message}`);
   }
 }

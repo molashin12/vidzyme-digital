@@ -14,6 +14,8 @@ const { generatePrompts } = require('../services/promptGeneration');
 const { generateImageFromPrompt } = require('../services/imageGeneration');
 const { generateVideoPrompts } = require('../services/videoPromptGeneration');
 const { extractFrames } = require('../services/frameExtraction');
+const { extractFrameLocally } = require('../services/localFrameExtraction');
+const { combineVideosLocally } = require('../services/localFFmpeg');
 
 // Helper functions to get Firebase services when needed
 const getDB = () => getFirestore();
@@ -278,28 +280,19 @@ async function generateVideos(input) {
   }
 }
 
-// Helper function to extract last frame from video using FFmpeg
+// Helper function to extract last frame from video using local FFmpeg
 async function extractLastFrame(videoUrl, videoIndex) {
   try {
-    const ffmpegServiceUrl = process.env.CLOUD_RUN_FFMPEG_URL;
-
-    if (!ffmpegServiceUrl) {
-      throw new Error('CLOUD_RUN_FFMPEG_URL environment variable is not set');
+    console.log(`Extracting last frame from video ${videoIndex} using local FFmpeg...`);
+    
+    // Use local FFmpeg service to extract last frame
+    const frameUrl = await extractFrameLocally(videoUrl, 'last', 'png');
+    
+    if (!frameUrl) {
+      throw new Error('No frame URL returned from local FFmpeg service');
     }
 
-    const response = await axios.post(`${ffmpegServiceUrl}/extract-frame`, {
-      videoUrl: videoUrl,
-      framePosition: 'last',
-      outputFormat: 'png'
-    }, {
-      timeout: 60000 // 1 minute timeout
-    });
-
-    if (!response.data.frameUrl) {
-      throw new Error('No frame URL returned from FFmpeg service');
-    }
-
-    return response.data.frameUrl;
+    return frameUrl;
   } catch (error) {
     console.error(`Error extracting last frame from video ${videoIndex}:`, error);
     throw new Error(`Failed to extract last frame: ${error.message}`);
@@ -348,30 +341,19 @@ function getVideoDimensions(aspectRatio) {
   return dimensions[aspectRatio] || dimensions['16:9'];
 }
 
-// Helper function to combine multiple videos
+// Helper function to combine multiple videos using local FFmpeg
 async function combineVideos(videoUrls, aspectRatio) {
   try {
-    const ffmpegServiceUrl = process.env.CLOUD_RUN_FFMPEG_URL;
-
-    if (!ffmpegServiceUrl) {
-      throw new Error('CLOUD_RUN_FFMPEG_URL environment variable is not set');
+    console.log('Combining videos using local FFmpeg...');
+    
+    // Use local FFmpeg service to combine videos
+    const finalVideoUrl = await combineVideosLocally(videoUrls, aspectRatio);
+    
+    if (!finalVideoUrl) {
+      throw new Error('No final video URL returned from local FFmpeg service');
     }
 
-    const outputFileName = `combined-video-${Date.now()}.mp4`;
-
-    const response = await axios.post(`${ffmpegServiceUrl}/concatenate-sequential-videos`, {
-      clipUrls: videoUrls,
-      outputFileName: outputFileName,
-      transitions: false
-    }, {
-      timeout: 600000 // 10 minutes timeout
-    });
-
-    if (!response.data.finalVideoUrl) {
-      throw new Error('No final video URL returned from FFmpeg service');
-    }
-
-    return response.data.finalVideoUrl;
+    return finalVideoUrl;
   } catch (error) {
     console.error('Error combining videos:', error);
     throw new Error(`Failed to combine videos: ${error.message}`);
