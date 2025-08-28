@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -10,8 +10,6 @@ import {
   Card,
   CardContent,
   Chip,
-  Avatar,
-  Rating,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -35,6 +33,8 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import Footer from '../Layout/Footer';
+import WaitlistForm from '../Waitlist/WaitlistForm';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -121,29 +121,7 @@ const LandingPage = () => {
     }
   ];
 
-  const testimonials = [
-    {
-      name: 'Sarah Chen',
-      role: 'Marketing Director at TechGear Pro',
-      avatar: 'SC',
-      rating: 5,
-      text: 'VidZyme transformed our content strategy. We went from creating 2-3 videos per month to 50+ variations per week. Our engagement rates increased by 240%.'
-    },
-    {
-      name: 'Marcus Rodriguez',
-      role: 'E-commerce Manager at StyleForward',
-      avatar: 'MR',
-      rating: 5,
-      text: 'The quality is incredible. Our customers can\'t tell the difference between VidZyme videos and professionally shot content, but we\'re saving $15,000 per month.'
-    },
-    {
-      name: 'Jennifer Walsh',
-      role: 'Growth Marketing Lead at FitnessPro',
-      avatar: 'JW',
-      rating: 5,
-      text: 'Finally, a solution that scales with our needs. We can test dozens of creative approaches simultaneously and optimize based on real performance data.'
-    }
-  ];
+
 
   const pricingPlans = [
     {
@@ -228,16 +206,32 @@ const LandingPage = () => {
       >
         <Toolbar sx={{ justifyContent: 'space-between', py: 1 }}>
           {/* Logo */}
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 700,
-              color: '#071946',
-              fontSize: '1.5rem'
+          <Box 
+            sx={{ 
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
             }}
           >
-            VidZyme
-          </Typography>
+            <img 
+              src="/assets/vidzyme-new-logo.png" 
+              alt="VidZyme Logo" 
+              style={{ 
+                height: '40px', 
+                width: 'auto'
+              }} 
+            />
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 700,
+                color: '#071946',
+                fontSize: '1.5rem'
+              }}
+            >
+              VidZyme
+            </Typography>
+          </Box>
           
           {/* Navigation Links */}
           <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 4 }}>
@@ -282,20 +276,7 @@ const LandingPage = () => {
             >
               Pricing
             </Button>
-            <Button 
-              color="inherit" 
-              onClick={() => scrollToSection('reviews')}
-              sx={{ 
-                color: '#666666',
-                textTransform: 'none',
-                fontWeight: 500,
-                '&:hover': {
-                  color: '#071946'
-                }
-              }}
-            >
-              Reviews
-            </Button>
+
           </Box>
           
           {/* Auth Buttons */}
@@ -316,7 +297,13 @@ const LandingPage = () => {
             </Button>
             <Button 
               variant="contained"
-              onClick={handleGetStarted}
+              onClick={() => {
+                if (currentUser) {
+                  handleGetStarted();
+                } else {
+                  scrollToSection('hero');
+                }
+              }}
               sx={{
                 bgcolor: '#286986',
                 color: 'white',
@@ -329,7 +316,7 @@ const LandingPage = () => {
                 }
               }}
             >
-              Start Free Trial
+              {currentUser ? 'Go to Dashboard' : 'Join Waitlist'}
             </Button>
           </Box>
         </Toolbar>
@@ -337,6 +324,7 @@ const LandingPage = () => {
       
       {/* Hero Section */}
       <Box
+        id="hero"
         sx={{
           background: 'linear-gradient(135deg, #071946 0%, #286986 100%)',
           color: 'white',
@@ -385,11 +373,16 @@ const LandingPage = () => {
               >
                 Upload your product image, configure scripts and scenes, and let VidZyme's AI generate multiple professional UGC-style videos simultaneously. Powered by Google's advanced Veo 3 model.
               </Typography>
-              <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+              <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' }, mb: 3 }}>
                 <Button
                   variant="contained"
                   size="large"
-                  onClick={handleGetStarted}
+                  onClick={currentUser ? handleGetStarted : () => {
+                    const waitlistSection = document.getElementById('waitlist-section');
+                    if (waitlistSection) {
+                      waitlistSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
                   sx={{
                     bgcolor: '#286986',
                     color: 'white',
@@ -403,30 +396,30 @@ const LandingPage = () => {
                   }}
                   endIcon={<ArrowForward />}
                 >
-                  Start Creating Videos Free
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="large"
-                  sx={{
-                    color: 'white',
-                    borderColor: 'white',
-                    px: 4,
-                    py: 1.5,
-                    fontSize: '1.1rem',
-                    '&:hover': {
-                      borderColor: '#286986',
-                      bgcolor: 'rgba(40, 105, 134, 0.1)'
-                    }
-                  }}
-                  startIcon={<PlayArrow />}
-                >
-                  Watch 2-Minute Demo
+                  {currentUser ? 'Go to Dashboard' : 'Get Started'}
                 </Button>
               </Box>
+              <Button
+                variant="outlined"
+                size="large"
+                sx={{
+                  color: 'white',
+                  borderColor: 'white',
+                  px: 4,
+                  py: 1.5,
+                  fontSize: '1.1rem',
+                  '&:hover': {
+                    borderColor: '#286986',
+                    bgcolor: 'rgba(40, 105, 134, 0.1)'
+                  }
+                }}
+                startIcon={<PlayArrow />}
+              >
+                Watch 2-Minute Demo
+              </Button>
               <Typography
                 variant="body2"
-                sx={{ mt: 3, opacity: 0.8 }}
+                sx={{ mt: 3, opacity: 0.8, textAlign: { xs: 'center', md: 'left' } }}
               >
                 ✓ No credit card required ✓ 3 free video generations ✓ Join 500+ brands
               </Typography>
@@ -574,6 +567,40 @@ const LandingPage = () => {
         </Grid>
       </Container>
 
+      {/* Waitlist Section */}
+      {!currentUser && (
+        <Box id="waitlist-section" sx={{ bgcolor: '#071946', py: 8 }}>
+          <Container maxWidth="md">
+            <Typography
+              variant="h2"
+              align="center"
+              sx={{
+                fontSize: { xs: '2rem', md: '2.5rem' },
+                fontWeight: 700,
+                mb: 3,
+                color: 'white'
+              }}
+            >
+              Join the Waitlist
+            </Typography>
+            <Typography
+              variant="h6"
+              align="center"
+              sx={{
+                mb: 4,
+                color: 'rgba(255,255,255,0.8)',
+                fontSize: { xs: '1.1rem', md: '1.3rem' }
+              }}
+            >
+              Be the first to transform your product images into viral UGC videos with AI
+            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+              <WaitlistForm />
+            </Box>
+          </Container>
+        </Box>
+      )}
+
       {/* Features Section */}
       <Box id="features" sx={{ bgcolor: '#f7fcfb', py: 8 }}>
         <Container maxWidth="lg">
@@ -685,89 +712,7 @@ const LandingPage = () => {
         </Grid>
       </Container>
 
-      {/* Social Proof Section */}
-      <Box id="reviews" sx={{ bgcolor: '#f1f4f9', py: 8 }}>
-        <Container maxWidth="lg">
-          <Typography
-            variant="h2"
-            align="center"
-            sx={{
-              fontSize: { xs: '2rem', md: '2.5rem' },
-              fontWeight: 700,
-              mb: 6,
-              color: '#071946'
-            }}
-          >
-            Trusted by Leading Brands Worldwide
-          </Typography>
 
-          <Grid container spacing={4}>
-            {testimonials.map((testimonial, index) => (
-              <Grid item xs={12} md={4} key={index}>
-                <Card
-                  sx={{
-                    height: '100%',
-                    p: 3,
-                    border: '1px solid #e0e0e0'
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <Avatar
-                      sx={{
-                        bgcolor: '#286986',
-                        mr: 2
-                      }}
-                    >
-                      {testimonial.avatar}
-                    </Avatar>
-                    <Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        {testimonial.name}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: '#666' }}>
-                        {testimonial.role}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Rating value={testimonial.rating} readOnly sx={{ mb: 2 }} />
-                  <Typography variant="body1" sx={{ fontStyle: 'italic' }}>
-                    "{testimonial.text}"
-                  </Typography>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-
-          <Box sx={{ textAlign: 'center', mt: 6 }}>
-            <Grid container spacing={4} justifyContent="center">
-              <Grid item xs={6} md={3}>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: '#286986' }}>
-                  10,000+
-                </Typography>
-                <Typography variant="body1">Videos Generated</Typography>
-              </Grid>
-              <Grid item xs={6} md={3}>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: '#286986' }}>
-                  500+
-                </Typography>
-                <Typography variant="body1">Satisfied Customers</Typography>
-              </Grid>
-              <Grid item xs={6} md={3}>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: '#286986' }}>
-                  95%
-                </Typography>
-                <Typography variant="body1">Customer Satisfaction</Typography>
-              </Grid>
-              <Grid item xs={6} md={3}>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: '#286986' }}>
-                  3x
-                </Typography>
-                <Typography variant="body1">Average Engagement Increase</Typography>
-              </Grid>
-            </Grid>
-          </Box>
-        </Container>
-      </Box>
 
       {/* Pricing Section */}
       <Container id="pricing" maxWidth="lg" sx={{ py: 8 }}>
@@ -1040,6 +985,9 @@ const LandingPage = () => {
           </Typography>
         </Container>
       </Box>
+      
+      {/* Footer */}
+      <Footer />
     </Box>
   );
 };

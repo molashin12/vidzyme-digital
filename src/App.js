@@ -11,6 +11,11 @@ import Dashboard from './components/Dashboard/Dashboard';
 import VideoGenerator from './components/VideoGenerator/VideoGenerator';
 import VideoLibrary from './components/VideoLibrary/VideoLibrary';
 import Navbar from './components/Layout/Navbar';
+import TermsOfService from './components/Legal/TermsOfService';
+import PrivacyPolicy from './components/Legal/PrivacyPolicy';
+import CookiePolicy from './components/Legal/CookiePolicy';
+import AcceptableUsePolicy from './components/Legal/AcceptableUsePolicy';
+import DMCAPolicy from './components/Legal/DMCAPolicy';
 import './App.css';
 
 const theme = createTheme({
@@ -177,6 +182,11 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/cookies" element={<CookiePolicy />} />
+              <Route path="/acceptable-use" element={<AcceptableUsePolicy />} />
+              <Route path="/dmca" element={<DMCAPolicy />} />
             </Routes>
           </div>
         </Router>

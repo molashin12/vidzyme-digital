@@ -35,11 +35,13 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 const videoRoutes = require('./routes/video');
 const authRoutes = require('./routes/auth');
 const healthRoutes = require('./routes/health');
+const waitlistRoutes = require('./routes/waitlist');
 
 // Use routes
 app.use('/api/video', videoRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/health', healthRoutes);
+app.use('/api/waitlist', waitlistRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -13,8 +13,10 @@ const { analyzeImage } = require('../services/imageAnalysis');
 const { generatePrompts } = require('../services/promptGeneration');
 const { generateImageFromPrompt } = require('../services/imageGeneration');
 const { generateVideoPrompts } = require('../services/videoPromptGeneration');
+const { generateVideos } = require('../services/videoGeneration');
 const { extractFrames } = require('../services/frameExtraction');
 const { extractFrameLocally } = require('../services/localFrameExtraction');
+const { generateSequentialVideo: generateSequentialVideoService } = require('../services/sequentialVideoGeneration');
 const { combineVideosLocally } = require('../services/localFFmpeg');
 
 // Helper functions to get Firebase services when needed
@@ -96,7 +98,7 @@ const generateVideoWithGenkit = async (req, res) => {
     const validatedInput = VideoGenerationInput.parse(req.body);
     
     // Generate videos
-    const result = await generateVideos(validatedInput);
+    const result = await generateVideosLocal(validatedInput);
     
     // Save video metadata to Firestore
     const videoDoc = {
@@ -131,8 +133,8 @@ const generateVideoWithGenkit = async (req, res) => {
   }
 };
 
-// Main video generation function
-async function generateVideos(input) {
+// Main video generation function (local implementation)
+async function generateVideosLocal(input) {
   const { videoPrompt, generatedImageUrl, aspectRatio, numberOfVideos, personGeneration } = input;
   const startTime = Date.now();
   const model = 'veo-3.0-generate-preview';
@@ -371,13 +373,69 @@ const generateVideo = async (req, res) => {
 };
 
 const generateSequentialVideo = async (req, res) => {
-  // This can be implemented later if needed
-  res.status(501).json({
-    error: {
-      message: 'Sequential video generation not implemented yet.',
-      status: 501
+  try {
+    const { userInstructions, imageAnalysis, generatedImageUrl, aspectRatio, numberOfVideos, personGeneration, totalDuration } = req.body;
+
+    if (!userInstructions || !imageAnalysis || !generatedImageUrl) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: userInstructions, imageAnalysis, and generatedImageUrl are required' 
+      });
     }
-  });
+
+    console.log('Generating video prompts...');
+    const videoPrompts = await generateVideoPrompts({
+      userInstructions,
+      imageAnalysis,
+      generatedImageUrl
+    });
+
+    console.log('Generated video prompts:', videoPrompts);
+
+    // Check if we need sequential video generation (for videos longer than 8 seconds)
+    const duration = totalDuration || (numberOfVideos ? numberOfVideos * 8 : 8);
+    
+    if (duration > 8) {
+      console.log(`Generating sequential video for ${duration} seconds...`);
+      const result = await generateSequentialVideoService({
+        initialVideoPrompt: videoPrompts.prompts[0],
+        generatedImageUrl,
+        userInstructions,
+        imageAnalysis,
+        aspectRatio: aspectRatio || '16:9',
+        totalDuration: duration,
+        personGeneration: personGeneration || 'allow_adult'
+      });
+      
+      res.json({
+        success: true,
+        data: result,
+        type: 'sequential'
+      });
+    } else {
+      console.log('Generating standard videos...');
+      const result = await generateVideosLocal({
+        videoPrompts: videoPrompts.prompts,
+        generatedImageUrl,
+        aspectRatio: aspectRatio || '16:9',
+        numberOfVideos: numberOfVideos || 1,
+        personGeneration: personGeneration || 'allow_adult'
+      });
+      
+      res.json({
+        success: true,
+        data: result,
+        type: 'standard'
+      });
+    }
+  } catch (error) {
+    console.error('Sequential video generation error:', error);
+    res.status(500).json({
+      error: {
+        message: error.message || 'Failed to generate sequential video',
+        status: 500
+      }
+    });
+  }
 };
 
 const extractFramesEndpoint = async (req, res) => {

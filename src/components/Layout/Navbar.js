@@ -58,18 +58,34 @@ function Navbar() {
         }}
       >
         <Toolbar>
-          <Typography 
-            variant="h6" 
-            component="div" 
+          <Box 
             sx={{ 
               flexGrow: 1, 
-              fontWeight: 700, 
-              color: '#071946',
-              fontSize: '1.5rem'
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
             }}
           >
-            VidZyme
-          </Typography>
+            <img 
+              src="/assets/vidzyme-new-logo.png" 
+              alt="VidZyme Logo" 
+              style={{ 
+                height: '40px', 
+                width: 'auto'
+              }} 
+            />
+            <Typography 
+              variant="h6" 
+              component="div" 
+              sx={{ 
+                fontWeight: 700, 
+                color: '#071946',
+                fontSize: '1.5rem'
+              }}
+            >
+              VidZyme
+            </Typography>
+          </Box>
         </Toolbar>
       </AppBar>
     );
@@ -85,19 +101,35 @@ function Navbar() {
       }}
     >
       <Toolbar>
-        <Typography 
-          variant="h6" 
-          component="div" 
+        <Box 
           sx={{ 
-            fontWeight: 700, 
-            color: '#071946', 
-            cursor: 'pointer',
-            fontSize: '1.5rem'
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            cursor: 'pointer'
           }}
           onClick={() => navigate('/dashboard')}
         >
-          VidZyme
-        </Typography>
+          <img 
+            src="/assets/vidzyme-new-logo.png" 
+            alt="VidZyme Logo" 
+            style={{ 
+              height: '40px', 
+              width: 'auto'
+            }} 
+          />
+          <Typography 
+            variant="h6" 
+            component="div" 
+            sx={{ 
+              fontWeight: 700, 
+              color: '#071946',
+              fontSize: '1.5rem'
+            }}
+          >
+            VidZyme
+          </Typography>
+        </Box>
         
         <Box sx={{ flexGrow: 1, display: 'flex', ml: 4 }}>
           <Button

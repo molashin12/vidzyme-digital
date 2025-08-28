@@ -30,7 +30,7 @@ import { videoAPI } from '../../services/api';
 import { storage, db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
-import AuthTest from '../Debug/AuthTest';
+
 
 function VideoGenerator() {
   const { currentUser, userProfile } = useAuth();
@@ -202,7 +202,7 @@ function VideoGenerator() {
 
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-      <AuthTest />
+
       <Paper sx={{ p: 4 }}>
         <Box sx={{ textAlign: 'center', mb: 4 }}>
           <VideoCall sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
